@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { monthDays, todayStr, sessionVolume } from '../lib/dateUtils'
+import { monthDays, todayStr, toDateStr, sessionVolume } from '../lib/dateUtils'
 import SplitBadge, { splitColor } from '../components/ui/SplitBadge'
 import ExerciseCard from '../components/workout/ExerciseCard'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -29,7 +29,7 @@ export default function MonthlyView() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`
-      const lastDay = new Date(year, month + 1, 0).toISOString().slice(0, 10)
+      const lastDay = toDateStr(new Date(year, month + 1, 0))
 
       const { data } = await supabase
         .from('workout_sessions')

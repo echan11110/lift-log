@@ -1,15 +1,12 @@
 import { useState } from 'react'
 import { useWorkoutSession } from '../hooks/useWorkoutSession'
 import { useExerciseNames } from '../hooks/useExerciseNames'
+import { todayStr } from '../lib/dateUtils'
 import ExerciseCard from '../components/workout/ExerciseCard'
 import ExerciseAutocomplete from '../components/workout/ExerciseAutocomplete'
 import { PageSpinner } from '../components/ui/Spinner'
 
 const SPLITS = ['Push', 'Pull', 'Legs', 'Arms']
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10)
-}
 
 function formatDisplayDate(dateStr) {
   const d = new Date(dateStr + 'T12:00:00')

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { weekRange, displayDate, todayStr, sessionVolume, DAY_LABELS } from '../lib/dateUtils'
+import { weekRange, displayDate, todayStr, toDateStr, sessionVolume, DAY_LABELS } from '../lib/dateUtils'
 import SplitBadge from '../components/ui/SplitBadge'
 import ExerciseCard from '../components/workout/ExerciseCard'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -63,14 +63,14 @@ export default function WeeklyView() {
   function prevWeek() {
     const d = new Date(anchor + 'T12:00:00')
     d.setDate(d.getDate() - 7)
-    setAnchor(d.toISOString().slice(0, 10))
+    setAnchor(toDateStr(d))
     setExpanded(null)
   }
 
   function nextWeek() {
     const d = new Date(anchor + 'T12:00:00')
     d.setDate(d.getDate() + 7)
-    const next = d.toISOString().slice(0, 10)
+    const next = toDateStr(d)
     const weekStart = weekRange(next)[0]
     if (weekStart <= todayStr()) {
       setAnchor(next)

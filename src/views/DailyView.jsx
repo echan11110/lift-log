@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useWorkoutSession } from '../hooks/useWorkoutSession'
 import { useExerciseNames } from '../hooks/useExerciseNames'
-import { displayDate, todayStr } from '../lib/dateUtils'
+import { displayDate, todayStr, toDateStr } from '../lib/dateUtils'
 import ExerciseCard from '../components/workout/ExerciseCard'
 import ExerciseAutocomplete from '../components/workout/ExerciseAutocomplete'
 import SplitBadge from '../components/ui/SplitBadge'
@@ -21,14 +21,14 @@ export default function DailyView() {
   function prevDay() {
     const d = new Date(date + 'T12:00:00')
     d.setDate(d.getDate() - 1)
-    setDate(d.toISOString().slice(0, 10))
+    setDate(toDateStr(d))
     setEditMode(false)
   }
 
   function nextDay() {
     const d = new Date(date + 'T12:00:00')
     d.setDate(d.getDate() + 1)
-    const next = d.toISOString().slice(0, 10)
+    const next = toDateStr(d)
     if (next <= todayStr()) {
       setDate(next)
       setEditMode(false)

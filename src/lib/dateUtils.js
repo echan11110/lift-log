@@ -1,5 +1,11 @@
+// Use local date methods (not UTC) so the date string always matches
+// the user's timezone — toISOString() would return yesterday for UTC+ zones
+// early in the day.
 export function toDateStr(date) {
-  return date.toISOString().slice(0, 10)
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 export function displayDate(dateStr) {
@@ -13,7 +19,8 @@ export function shortDate(dateStr) {
 }
 
 export function weekRange(date) {
-  const d = new Date(date)
+  // Parse with noon local time so getDay/getDate use the correct local date
+  const d = new Date(date + 'T12:00:00')
   const day = d.getDay()
   const diff = day === 0 ? -6 : 1 - day
   const mon = new Date(d)
