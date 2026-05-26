@@ -21,15 +21,19 @@ export default function AuthPage() {
     <div className="flex flex-col items-center justify-center min-h-dvh bg-surface px-5">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <div className="text-4xl mb-3">🏋️</div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Lift Log</h1>
-          <p className="text-zinc-500 mt-1 text-sm">Track every rep. Own your progress.</p>
+          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
+              <path d="M6 4v16M18 4v16M2 9h4M18 9h4M2 15h4M18 15h4M6 12h12" />
+            </svg>
+          </div>
+          <h1 className="font-condensed font-bold text-white uppercase tracking-wide" style={{fontSize:'3rem',lineHeight:1}}>Lift Log</h1>
+          <p className="text-zinc-500 mt-2 text-sm">Track every rep. Own your progress.</p>
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs text-zinc-400 mb-1.5">Passphrase</label>
+              <label className="block text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">Passphrase</label>
               <input
                 type="password"
                 value={passphrase}
@@ -47,7 +51,8 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading || !passphrase.trim()}
-              className="w-full bg-accent hover:bg-blue-500 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-colors"
+              className="w-full bg-accent hover:bg-accentHov disabled:opacity-40 text-white font-condensed font-bold uppercase tracking-wider py-3.5 rounded-xl transition-colors cursor-pointer"
+              style={{fontSize:'1.1rem'}}
             >
               {loading ? 'Connecting…' : 'Sync & Continue'}
             </button>

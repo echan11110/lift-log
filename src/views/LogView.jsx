@@ -49,9 +49,9 @@ export default function LogView() {
     <div>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-white font-bold text-xl">{formatDisplayDate(date)}</h2>
+          <h2 className="font-condensed font-bold text-white uppercase tracking-wide leading-none" style={{fontSize:'1.75rem'}}>{formatDisplayDate(date)}</h2>
           {session && (
-            <p className="text-zinc-500 text-xs mt-0.5">
+            <p className="text-zinc-500 text-xs mt-1">
               {exercises.length} exercise{exercises.length !== 1 ? 's' : ''}
             </p>
           )}
@@ -60,24 +60,31 @@ export default function LogView() {
           type="date"
           value={date}
           onChange={e => { setDate(e.target.value); setPendingSplit('Push') }}
-          className="bg-card border border-border text-zinc-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-accent"
+          className="bg-card border border-border text-zinc-300 text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-accent cursor-pointer"
         />
       </div>
 
-      <div className="flex gap-2 mb-5 flex-wrap">
-        {SPLITS.map(s => (
-          <button
-            key={s}
-            onClick={() => handleSplitChange(s)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors border ${
-              currentSplit === s
-                ? 'border-accent bg-accent/10 text-accent'
-                : 'border-border text-zinc-500 hover:text-zinc-300'
-            }`}
-          >
-            {s}
-          </button>
-        ))}
+      <div className="flex gap-2 mb-5">
+        {SPLITS.map(s => {
+          const ACTIVE = {
+            Push:  'border-red-500/40 bg-red-500/15 text-red-400',
+            Pull:  'border-sky-500/40 bg-sky-500/15 text-sky-400',
+            Legs:  'border-emerald-500/40 bg-emerald-500/15 text-emerald-400',
+            Arms:  'border-amber-500/40 bg-amber-500/15 text-amber-400',
+          }
+          const isActive = currentSplit === s
+          return (
+            <button
+              key={s}
+              onClick={() => handleSplitChange(s)}
+              className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border cursor-pointer ${
+                isActive ? ACTIVE[s] : 'border-border text-zinc-600 hover:text-zinc-400 hover:border-zinc-600'
+              }`}
+            >
+              {s}
+            </button>
+          )
+        })}
       </div>
 
       {exercises.map(ex => (
@@ -99,7 +106,7 @@ export default function LogView() {
       </div>
 
       <div className="mt-5">
-        <label className="block text-xs text-zinc-500 mb-1.5">Session notes</label>
+        <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Session notes</label>
         <textarea
           value={session?.notes ?? ''}
           onChange={e => session && updateSession({ notes: e.target.value })}

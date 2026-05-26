@@ -51,13 +51,20 @@ export default function BottomNav() {
             key={to}
             to={to}
             className={({ isActive }) =>
-              `flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors ${
-                isActive ? 'text-accent' : 'text-zinc-500 hover:text-zinc-300'
+              `flex-1 flex flex-col items-center justify-center py-3 gap-1 transition-colors relative cursor-pointer ${
+                isActive ? 'text-accent' : 'text-zinc-600 hover:text-zinc-400'
               }`
             }
           >
-            <Icon />
-            <span className="text-[10px] font-medium">{label}</span>
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-accent rounded-full" />
+                )}
+                <Icon />
+                <span className="text-[10px] font-semibold uppercase tracking-wider">{label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </div>

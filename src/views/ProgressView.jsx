@@ -103,7 +103,7 @@ export default function ProgressView() {
     <div>
       {!selected ? (
         <>
-          <h2 className="text-white font-bold text-xl mb-4">Progress</h2>
+          <h2 className="font-condensed font-bold text-white uppercase tracking-wide mb-4" style={{fontSize:'1.75rem',lineHeight:1}}>Progress</h2>
           <input
             type="text"
             value={query}
@@ -119,7 +119,7 @@ export default function ProgressView() {
                 <button
                   key={name}
                   onClick={() => loadProgress(name)}
-                  className="w-full text-left bg-card border border-border rounded-xl px-4 py-3.5 text-white hover:border-accent/50 transition-colors"
+                  className="w-full text-left bg-card border border-border rounded-xl px-4 py-3.5 font-condensed font-semibold text-white uppercase tracking-wide text-base hover:border-accent/50 hover:bg-cardHov transition-colors cursor-pointer"
                 >
                   {name}
                 </button>
@@ -132,9 +132,9 @@ export default function ProgressView() {
           <div className="flex items-center gap-3 mb-5">
             <button
               onClick={() => setSelected(null)}
-              className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border text-zinc-400 hover:text-white transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border text-zinc-400 hover:text-white transition-colors cursor-pointer"
             >←</button>
-            <h2 className="text-white font-bold text-lg truncate">{selected}</h2>
+            <h2 className="font-condensed font-bold text-white uppercase tracking-wide truncate" style={{fontSize:'1.5rem',lineHeight:1}}>{selected}</h2>
           </div>
 
           {chartLoading ? <PageSpinner /> : (
@@ -153,12 +153,12 @@ export default function ProgressView() {
                         <XAxis dataKey="displayDate" tick={{ fill: '#71717a', fontSize: 10 }} interval="preserveStartEnd" />
                         <YAxis tick={{ fill: '#71717a', fontSize: 10 }} />
                         <Tooltip
-                          contentStyle={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 8 }}
+                          contentStyle={{ background: '#141414', border: '1px solid #242424', borderRadius: 8 }}
                           labelStyle={{ color: '#fff', fontSize: 12 }}
-                          itemStyle={{ color: '#60a5fa' }}
+                          itemStyle={{ color: '#f97316' }}
                           formatter={v => [`${v} lbs`]}
                         />
-                        <Line type="monotone" dataKey="maxWeight" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="maxWeight" stroke="#f97316" strokeWidth={2.5} dot={false} />
                         {data.map((d, i) => d.isPR && (
                           <ReferenceDot key={i} x={d.displayDate} y={d.maxWeight} r={5} fill="#f59e0b" stroke="none" />
                         ))}
@@ -172,13 +172,13 @@ export default function ProgressView() {
                         <XAxis dataKey="displayDate" tick={{ fill: '#71717a', fontSize: 10 }} interval="preserveStartEnd" />
                         <YAxis tick={{ fill: '#71717a', fontSize: 10 }} />
                         <Tooltip
-                          contentStyle={{ background: '#1a1a1a', border: '1px solid #2a2a2a', borderRadius: 8 }}
+                          contentStyle={{ background: '#141414', border: '1px solid #242424', borderRadius: 8 }}
                           labelStyle={{ color: '#fff', fontSize: 12 }}
-                          itemStyle={{ color: '#60a5fa' }}
+                          itemStyle={{ color: '#f97316' }}
                           formatter={v => [`${v.toLocaleString()} lbs`]}
                         />
                         <Bar dataKey="volume" radius={[3, 3, 0, 0]}>
-                          {data.map((d, i) => <Cell key={i} fill={d.isPR ? '#f59e0b' : '#3b82f6'} />)}
+                          {data.map((d, i) => <Cell key={i} fill={d.isPR ? '#f59e0b' : '#f97316'} fillOpacity={d.isPR ? 1 : 0.6} />)}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -186,9 +186,9 @@ export default function ProgressView() {
 
                   {prs.length > 0 && (
                     <div className="bg-card border border-border rounded-2xl p-4 mt-4">
-                      <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
-                        <span>PRs</span>
+                      <h3 className="font-condensed font-bold text-white uppercase tracking-wide mb-3 flex items-center gap-2 text-lg">
                         <span className="text-amber-400">★</span>
+                        <span>Personal Records</span>
                       </h3>
                       <div className="space-y-2">
                         {[...prs].reverse().map((pr, i) => (
@@ -216,9 +216,9 @@ export default function ProgressView() {
 
 function Stat({ label, value, accent }) {
   return (
-    <div className="bg-card border border-border rounded-xl p-3 text-center">
-      <p className="text-zinc-500 text-xs mb-0.5">{label}</p>
-      <p className={`font-bold text-sm ${accent ? 'text-accent' : 'text-white'}`}>{value}</p>
+    <div className={`rounded-xl p-3 text-center border ${accent ? 'bg-accent/10 border-accent/20' : 'bg-card border-border'}`}>
+      <p className="text-zinc-500 text-[10px] font-medium uppercase tracking-wider mb-1">{label}</p>
+      <p className={`font-condensed font-bold text-lg leading-none ${accent ? 'text-accent' : 'text-white'}`}>{value}</p>
     </div>
   )
 }
@@ -226,7 +226,7 @@ function Stat({ label, value, accent }) {
 function ChartCard({ title, children }) {
   return (
     <div className="bg-card border border-border rounded-2xl p-4 mb-3">
-      <p className="text-zinc-400 text-xs font-medium mb-3">{title}</p>
+      <p className="text-zinc-400 text-xs font-semibold uppercase tracking-wider mb-3">{title}</p>
       {children}
     </div>
   )
