@@ -1,10 +1,30 @@
 import { useState } from 'react'
 import SetRow from './SetRow'
+import { useExerciseHistory } from '../../hooks/useExerciseHistory'
 
-export default function ExerciseCard({ exercise, onDelete, onAddSet, onUpdateSet, onDeleteSet, onAddDropset, onUpdateDropset, onDeleteDropset, readOnly }) {
+export default function ExerciseCard({ exercise, currentDate, onDelete, onRename, onAddSet, onUpdateSet, onDeleteSet, onAddDropset, onUpdateDropset, onDeleteDropset, readOnly }) {
   const [newWeight, setNewWeight] = useState('')
   const [newReps, setNewReps] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editingName, setEditingName] = useState(false)
+  const [nameVal, setNameVal] = useState(exercise.name)
+
+  const { lastSets, daysAgo, allTimePR } = useExerciseHistory(
+    readOnly ? null : exercise.name,
+    currentDate
+  )
+
+  // Top set from last session — used as placeholder pre-fill
+  const topSet = lastSets.length
+    ? lastSets.reduce((best, s) => s.weight >= best.weight ? s : best, lastSets[0])
+    : null
+
+  function saveName() {
+    const trimmed = nameVal.trim()
+    if (trimmed && trimmed !== exercise.name) onRename?.(exercise.id, trimmed)
+    else setNameVal(exercise.name)
+    setEditingName(false)
+  }
 
   async function handleAddSet() {
     const w = parseFloat(newWeight)
@@ -20,10 +40,27 @@ export default function ExerciseCard({ exercise, onDelete, onAddSet, onUpdateSet
     }
   }
 
+  const lastTimeLabel = daysAgo === 1 ? '1d ago' : daysAgo != null ? `${daysAgo}d ago` : null
+
   return (
     <div className="bg-card border border-border rounded-2xl p-4 mb-3 animate-fade-in">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-condensed font-bold text-white uppercase tracking-wide text-lg leading-none">{exercise.name}</h3>
+      <div className="flex items-center justify-between mb-1">
+        {!readOnly && editingName ? (
+          <input
+            autoFocus
+            value={nameVal}
+            onChange={e => setNameVal(e.target.value)}
+            onBlur={saveName}
+            onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setNameVal(exercise.name); setEditingName(false) } }}
+            className="font-condensed font-bold uppercase tracking-wide text-lg leading-none bg-transparent border-b border-accent text-white focus:outline-none flex-1 mr-2"
+          />
+        ) : (
+          <h3
+            className={`font-condensed font-bold text-white uppercase tracking-wide text-lg leading-none${!readOnly ? ' cursor-pointer hover:text-accent transition-colors' : ''}`}
+            onClick={() => !readOnly && setEditingName(true)}
+            title={!readOnly ? 'Tap to rename' : undefined}
+          >{exercise.name}</h3>
+        )}
         {!readOnly && (
           <button
             onClick={() => onDelete(exercise.id)}
@@ -36,6 +73,23 @@ export default function ExerciseCard({ exercise, onDelete, onAddSet, onUpdateSet
           </button>
         )}
       </div>
+
+      {/* Last-time history strip */}
+      {!readOnly && lastTimeLabel && (
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <span className="text-zinc-500 text-xs">
+            Last ({lastTimeLabel}):&nbsp;
+            <span className="text-zinc-400">
+              {lastSets.map(s => `${s.weight}×${s.reps}`).join(', ')}
+            </span>
+          </span>
+          {allTimePR > 0 && (
+            <span className="inline-flex items-center gap-0.5 text-amber-400 text-xs font-semibold bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5">
+              ★ PR {allTimePR} lbs
+            </span>
+          )}
+        </div>
+      )}
 
       {exercise.sets.length > 0 && (
         <div className="mb-3 space-y-0.5">
@@ -60,8 +114,8 @@ export default function ExerciseCard({ exercise, onDelete, onAddSet, onUpdateSet
             type="number"
             value={newWeight}
             onChange={e => setNewWeight(e.target.value)}
-            placeholder="lbs"
-            className="w-16 bg-surface border border-border rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-accent transition-colors"
+            placeholder={topSet ? String(topSet.weight) : 'lbs'}
+            className="w-16 bg-surface border border-border rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-accent transition-colors placeholder-zinc-600"
           />
           <span className="text-zinc-600 text-sm font-bold">×</span>
           <input
@@ -69,8 +123,8 @@ export default function ExerciseCard({ exercise, onDelete, onAddSet, onUpdateSet
             value={newReps}
             onChange={e => setNewReps(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAddSet()}
-            placeholder="reps"
-            className="w-14 bg-surface border border-border rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-accent transition-colors"
+            placeholder={topSet ? String(topSet.reps) : 'reps'}
+            className="w-14 bg-surface border border-border rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-accent transition-colors placeholder-zinc-600"
           />
           <button
             onClick={handleAddSet}

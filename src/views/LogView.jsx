@@ -18,7 +18,7 @@ export default function LogView() {
   const [pendingSplit, setPendingSplit] = useState('Push')
   const {
     session, exercises, loading, error,
-    updateSession, addExercise, deleteExercise,
+    updateSession, addExercise, updateExercise, deleteExercise,
     addSet, updateSet, deleteSet,
     addDropset, updateDropset, deleteDropset,
   } = useWorkoutSession(date)
@@ -88,7 +88,9 @@ export default function LogView() {
         <ExerciseCard
           key={ex.id}
           exercise={ex}
+          currentDate={date}
           onDelete={deleteExercise}
+          onRename={(id, name) => updateExercise(id, { name })}
           onAddSet={addSet}
           onUpdateSet={updateSet}
           onDeleteSet={deleteSet}

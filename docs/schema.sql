@@ -100,5 +100,6 @@ create policy "Users own their dropsets"
 
 create index if not exists idx_sessions_user_date   on workout_sessions (user_id, date);
 create index if not exists idx_exercises_session     on exercises (session_id, exercise_order);
+create index if not exists idx_exercises_name        on exercises (name);
 create index if not exists idx_sets_exercise         on sets (exercise_id, set_number);
 create index if not exists idx_dropsets_set          on dropsets (set_id, drop_order);

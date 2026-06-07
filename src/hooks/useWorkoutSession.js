@@ -105,6 +105,12 @@ export function useWorkoutSession(date) {
     return data
   }
 
+  async function updateExercise(exerciseId, fields) {
+    const { error } = await supabase.from('exercises').update(fields).eq('id', exerciseId)
+    if (error) throw error
+    setExercises(prev => prev.map(ex => ex.id === exerciseId ? { ...ex, ...fields } : ex))
+  }
+
   async function deleteExercise(exerciseId) {
     const { error } = await supabase.from('exercises').delete().eq('id', exerciseId)
     if (error) throw error
@@ -195,7 +201,7 @@ export function useWorkoutSession(date) {
   return {
     session, exercises, loading, error,
     updateSession, deleteSession,
-    addExercise, deleteExercise,
+    addExercise, updateExercise, deleteExercise,
     addSet, updateSet, deleteSet,
     addDropset, updateDropset, deleteDropset,
     refresh: loadSession,
