@@ -20,19 +20,20 @@ export function useExerciseHistory(name, currentDate) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // Single query: all past occurrences of this exercise with their sets,
-        // newest first. Excludes today so in-progress session never shows as "last time".
-        const { data: rows } = await supabase
-          .from('exercises')
-          .select('id, sets(weight, reps, set_number), workout_sessions!inner(date, user_id)')
-          .eq('name', name)
-          .eq('workout_sessions.user_id', user.id)
-          .lt('workout_sessions.date', currentDate)
-          .order('workout_sessions(date)', { ascending: false })
+        // Query workout_sessions directly so user_id and date filters apply
+        // to the root table — no embedded-filter ambiguity.
+        // exercises!inner filters to sessions that contain this exercise name.
+        const { data: sessions } = await supabase
+          .from('workout_sessions')
+          .select('id, date, exercises!inner(id, name, sets(weight, reps, set_number))')
+          .eq('user_id', user.id)
+          .eq('exercises.name', name)
+          .lt('date', currentDate)
+          .order('date', { ascending: false })
 
         if (cancelled) return
 
-        if (!rows?.length) {
+        if (!sessions?.length) {
           setLastSets([])
           setLastDate(null)
           setDaysAgo(null)
@@ -41,29 +42,31 @@ export function useExerciseHistory(name, currentDate) {
         }
 
         // Most recent session = first row (desc order)
-        const recent = rows[0]
-        const recentDate = recent.workout_sessions?.date ?? null
-        const recentSets = (recent.sets ?? []).sort((a, b) => a.set_number - b.set_number)
+        const recent = sessions[0]
+        const recentDate = recent.date
+        // exercises is an array; find the one matching our exercise name
+        const recentEx = recent.exercises?.find(e => e.name === name)
+        const recentSets = (recentEx?.sets ?? []).sort((a, b) => a.set_number - b.set_number)
 
-        // All-time PR = max weight across all historical sets
+        // All-time PR = max weight across all historical sets for this exercise
         let pr = 0
-        for (const row of rows) {
-          for (const s of row.sets ?? []) {
-            if (s.weight > pr) pr = s.weight
+        for (const s of sessions) {
+          const ex = s.exercises?.find(e => e.name === name)
+          for (const set of ex?.sets ?? []) {
+            if (set.weight > pr) pr = set.weight
           }
         }
 
-        let ago = null
-        if (recentDate) {
-          const curr = new Date(currentDate + 'T12:00:00')
-          const last = new Date(recentDate + 'T12:00:00')
-          ago = Math.round((curr - last) / (1000 * 60 * 60 * 24))
-        }
+        const curr = new Date(currentDate + 'T12:00:00')
+        const last = new Date(recentDate + 'T12:00:00')
+        const ago = Math.round((curr - last) / (1000 * 60 * 60 * 24))
 
         setLastSets(recentSets)
         setLastDate(recentDate)
         setDaysAgo(ago)
         setAllTimePR(pr)
+      } catch (err) {
+        console.error('useExerciseHistory:', err)
       } finally {
         if (!cancelled) setLoading(false)
       }
