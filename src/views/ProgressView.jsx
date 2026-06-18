@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   LineChart, Line, BarChart, Bar,
@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import { PageSpinner } from '../components/ui/Spinner'
 import { shortDate } from '../lib/dateUtils'
+import { epley1RM, bestE1RM } from '../lib/strength'
 
 export default function ProgressView() {
   const [exercises, setExercises] = useState([])
@@ -50,7 +51,6 @@ export default function ProgressView() {
     if (!exData?.length) { setData([]); setChartLoading(false); return }
 
     const rows = []
-    let allTimePR = 0
 
     for (const ex of exData) {
       const date = ex.workout_sessions?.date
@@ -61,26 +61,25 @@ export default function ProgressView() {
 
       if (!sets?.length) continue
 
+      // e1RM from main sets only (no dropsets)
+      const { e1rm, set: prSet } = bestE1RM(sets)
+
       let maxWeight = 0
       let volume = 0
       for (const s of sets) {
-        maxWeight = Math.max(maxWeight, s.weight)
+        if (s.weight > maxWeight) maxWeight = s.weight
         volume += s.weight * s.reps
-        for (const d of (s.dropsets ?? [])) {
-          volume += d.weight * d.reps
-        }
+        for (const d of (s.dropsets ?? [])) volume += d.weight * d.reps
       }
 
-      const isPR = maxWeight > allTimePR
-      if (isPR) allTimePR = maxWeight
-
-      rows.push({ date, maxWeight, volume, isPR: false, displayDate: shortDate(date) })
+      rows.push({ date, e1rm, prSet, maxWeight, volume, isPR: false, displayDate: shortDate(date) })
     }
 
+    // PR detection keyed off e1RM so same-weight/more-reps sessions register
     let runningPR = 0
     rows.forEach(r => {
-      if (r.maxWeight > runningPR) {
-        runningPR = r.maxWeight
+      if (r.e1rm > runningPR) {
+        runningPR = r.e1rm
         r.isPR = true
       }
     })
@@ -94,7 +93,8 @@ export default function ProgressView() {
     : exercises
 
   const prs = data.filter(d => d.isPR)
-  const allTimePR = data.length ? Math.max(...data.map(d => d.maxWeight)) : 0
+  const bestAllTimeE1RM = data.length ? Math.max(...data.map(d => d.e1rm)) : 0
+  const allTimeMaxWeight = data.length ? Math.max(...data.map(d => d.maxWeight)) : 0
   const totalVolume = data.reduce((t, d) => t + d.volume, 0)
 
   if (loading) return <PageSpinner />
@@ -139,15 +139,16 @@ export default function ProgressView() {
 
           {chartLoading ? <PageSpinner /> : (
             <>
-              <div className="grid grid-cols-3 gap-3 mb-5">
-                <Stat label="All-time PR" value={`${allTimePR} lbs`} accent />
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                <Stat label="Best e1RM" value={`${Math.round(bestAllTimeE1RM)} lbs`} accent />
+                <Stat label="Heaviest" value={`${allTimeMaxWeight} lbs`} />
                 <Stat label="Sessions" value={data.length} />
                 <Stat label="Total Volume" value={`${(totalVolume / 1000).toFixed(1)}k lbs`} />
               </div>
 
               {data.length > 0 && (
                 <>
-                  <ChartCard title="Max Weight per Session">
+                  <ChartCard title="Est. 1RM per Session">
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
                         <XAxis dataKey="displayDate" tick={{ fill: '#71717a', fontSize: 10 }} interval="preserveStartEnd" />
@@ -156,11 +157,11 @@ export default function ProgressView() {
                           contentStyle={{ background: '#141414', border: '1px solid #242424', borderRadius: 8 }}
                           labelStyle={{ color: '#fff', fontSize: 12 }}
                           itemStyle={{ color: '#f97316' }}
-                          formatter={v => [`${v} lbs`]}
+                          formatter={v => [`${Math.round(v)} lbs`]}
                         />
-                        <Line type="monotone" dataKey="maxWeight" stroke="#f97316" strokeWidth={2.5} dot={false} />
+                        <Line type="monotone" dataKey="e1rm" stroke="#f97316" strokeWidth={2.5} dot={false} />
                         {data.map((d, i) => d.isPR && (
-                          <ReferenceDot key={i} x={d.displayDate} y={d.maxWeight} r={5} fill="#f59e0b" stroke="none" />
+                          <ReferenceDot key={i} x={d.displayDate} y={d.e1rm} r={5} fill="#f59e0b" stroke="none" />
                         ))}
                       </LineChart>
                     </ResponsiveContainer>
@@ -194,7 +195,9 @@ export default function ProgressView() {
                         {[...prs].reverse().map((pr, i) => (
                           <div key={i} className="flex items-center justify-between">
                             <span className="text-zinc-400 text-sm">{pr.date}</span>
-                            <span className="text-amber-400 font-semibold text-sm">{pr.maxWeight} lbs</span>
+                            <span className="text-amber-400 font-semibold text-sm">
+                              {pr.prSet.weight}×{pr.prSet.reps} — e1RM {Math.round(pr.e1rm)}
+                            </span>
                           </div>
                         ))}
                       </div>

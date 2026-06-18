@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { epley1RM } from '../lib/strength'
 
 // Returns the most recent prior session's sets for a given exercise name,
 // plus the all-time PR weight. Excludes any session on currentDate.
@@ -48,12 +49,13 @@ export function useExerciseHistory(name, currentDate) {
         const recentEx = recent.exercises?.find(e => e.name === name)
         const recentSets = (recentEx?.sets ?? []).sort((a, b) => a.set_number - b.set_number)
 
-        // All-time PR = max weight across all historical sets for this exercise
+        // All-time PR = best e1RM across all historical sets for this exercise
         let pr = 0
         for (const s of sessions) {
           const ex = s.exercises?.find(e => e.name === name)
           for (const set of ex?.sets ?? []) {
-            if (set.weight > pr) pr = set.weight
+            const e = epley1RM(set.weight, set.reps)
+            if (e > pr) pr = e
           }
         }
 

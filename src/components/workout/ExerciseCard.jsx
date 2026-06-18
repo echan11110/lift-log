@@ -85,7 +85,7 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
           </span>
           {allTimePR > 0 && (
             <span className="inline-flex items-center gap-0.5 text-amber-400 text-xs font-semibold bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5">
-              ★ PR {allTimePR} lbs
+              ★ e1RM {Math.round(allTimePR)}
             </span>
           )}
         </div>
