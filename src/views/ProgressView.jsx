@@ -23,16 +23,8 @@ export default function ProgressView() {
 
   async function loadExercises() {
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase
-      .from('exercises')
-      .select('name, workout_sessions!inner(user_id, date)')
-      .eq('workout_sessions.user_id', user.id)
-    if (data) {
-      const unique = [...new Map(data.map(r => [r.name, r])).values()]
-        .map(r => r.name)
-        .sort()
-      setExercises(unique)
-    }
+    const { data } = await supabase.rpc('distinct_exercise_names', { p_user_id: user.id })
+    if (data) setExercises(data)
     setLoading(false)
   }
 

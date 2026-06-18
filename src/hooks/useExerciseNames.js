@@ -8,14 +8,8 @@ export function useExerciseNames() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data } = await supabase
-        .from('exercises')
-        .select('name, workout_sessions!inner(user_id)')
-        .eq('workout_sessions.user_id', user.id)
-      if (data) {
-        const unique = [...new Set(data.map(r => r.name))].sort()
-        setNames(unique)
-      }
+      const { data } = await supabase.rpc('distinct_exercise_names', { p_user_id: user.id })
+      if (data) setNames(data)
     }
     load()
   }, [])
@@ -29,14 +23,8 @@ export function useExerciseNames() {
   const refresh = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data } = await supabase
-      .from('exercises')
-      .select('name, workout_sessions!inner(user_id)')
-      .eq('workout_sessions.user_id', user.id)
-    if (data) {
-      const unique = [...new Set(data.map(r => r.name))].sort()
-      setNames(unique)
-    }
+    const { data } = await supabase.rpc('distinct_exercise_names', { p_user_id: user.id })
+    if (data) setNames(data)
   }, [])
 
   return { names, search, refresh }
