@@ -8,12 +8,10 @@ export function useExerciseNames() {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-
       const { data } = await supabase
         .from('exercises')
         .select('name, workout_sessions!inner(user_id)')
         .eq('workout_sessions.user_id', user.id)
-
       if (data) {
         const unique = [...new Set(data.map(r => r.name))].sort()
         setNames(unique)

@@ -43,7 +43,7 @@ export default function ProgressView() {
 
     const { data: exData } = await supabase
       .from('exercises')
-      .select('id, workout_sessions!inner(date, user_id)')
+      .select('id, workout_sessions!inner(date, user_id), sets(weight, reps, set_number, dropsets(weight, reps))')
       .eq('name', name)
       .eq('workout_sessions.user_id', user.id)
       .order('workout_sessions(date)')
@@ -54,12 +54,9 @@ export default function ProgressView() {
 
     for (const ex of exData) {
       const date = ex.workout_sessions?.date
-      const { data: sets } = await supabase
-        .from('sets')
-        .select('*, dropsets(*)')
-        .eq('exercise_id', ex.id)
+      const sets = ex.sets ?? []
 
-      if (!sets?.length) continue
+      if (!sets.length) continue
 
       // e1RM from main sets only (no dropsets)
       const { e1rm, set: prSet } = bestE1RM(sets)

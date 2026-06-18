@@ -105,3 +105,19 @@ create index if not exists idx_exercises_session     on exercises (session_id, e
 create index if not exists idx_exercises_name        on exercises (name);
 create index if not exists idx_sets_exercise         on sets (exercise_id, set_number);
 create index if not exists idx_dropsets_set          on dropsets (set_id, drop_order);
+
+-- ============================================================
+-- RPCs
+-- ============================================================
+
+-- Returns sorted distinct exercise names for a user.
+-- Run once in Supabase SQL editor; grant lets authenticated callers invoke it.
+create or replace function distinct_exercise_names(p_user_id uuid)
+returns setof text language sql stable as $$
+  select distinct e.name
+  from exercises e
+  join workout_sessions ws on ws.id = e.session_id
+  where ws.user_id = p_user_id
+  order by 1
+$$;
+grant execute on function distinct_exercise_names(uuid) to authenticated;
