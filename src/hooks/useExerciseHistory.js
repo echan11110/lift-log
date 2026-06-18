@@ -26,9 +26,10 @@ export function useExerciseHistory(name, currentDate) {
         // exercises!inner filters to sessions that contain this exercise name.
         const { data: sessions } = await supabase
           .from('workout_sessions')
-          .select('id, date, exercises!inner(id, name, sets(weight, reps, set_number))')
+          .select('id, date, exercises!inner(id, name, exercise_type, sets(weight, reps, set_number))')
           .eq('user_id', user.id)
           .eq('exercises.name', name)
+          .eq('exercises.exercise_type', 'strength')
           .lt('date', currentDate)
           .order('date', { ascending: false })
 

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useWorkoutSession } from '../hooks/useWorkoutSession'
 import { useExerciseNames } from '../hooks/useExerciseNames'
-import { displayDate, todayStr, toDateStr } from '../lib/dateUtils'
+import { displayDate, todayStr, toDateStr, sessionVolume, cardioDuration, formatDuration } from '../lib/dateUtils'
 import ExerciseCard from '../components/workout/ExerciseCard'
+import CardioCard from '../components/workout/CardioCard'
 import ExerciseAutocomplete from '../components/workout/ExerciseAutocomplete'
 import SplitBadge from '../components/ui/SplitBadge'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -37,9 +38,10 @@ export default function DailyView() {
   }
 
   const isToday = date === todayStr()
-  const totalVolume = exercises.reduce((t, ex) =>
-    t + ex.sets.reduce((sv, s) =>
-      sv + s.weight * s.reps + (s.dropsets ?? []).reduce((dv, d) => dv + d.weight * d.reps, 0), 0), 0)
+  const totalVolume = sessionVolume(exercises)
+  const totalCardioSec = cardioDuration(exercises)
+  const strengthExercises = exercises.filter(ex => ex.exercise_type !== 'cardio')
+  const cardioExercises = exercises.filter(ex => ex.exercise_type === 'cardio')
 
   if (loading) return <PageSpinner />
   if (error) return <p className="text-red-400 text-sm py-6 text-center">{error}</p>
@@ -73,13 +75,19 @@ export default function DailyView() {
           <div className="bg-card border border-border rounded-2xl p-4 mb-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-zinc-500 text-xs">Total Volume</p>
+                <p className="text-zinc-500 text-xs">Volume</p>
                 <p className="text-white font-bold text-lg">{totalVolume.toLocaleString()} lbs</p>
               </div>
               <div className="text-center">
                 <p className="text-zinc-500 text-xs">Exercises</p>
-                <p className="text-white font-bold text-lg">{exercises.length}</p>
+                <p className="text-white font-bold text-lg">{strengthExercises.length}</p>
               </div>
+              {totalCardioSec > 0 && (
+                <div className="text-center">
+                  <p className="text-zinc-500 text-xs">Cardio</p>
+                  <p className="text-blue-400 font-bold text-lg">{formatDuration(totalCardioSec)}</p>
+                </div>
+              )}
               <button
                 onClick={() => setEditMode(!editMode)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
@@ -103,7 +111,7 @@ export default function DailyView() {
             </button>
           )}
 
-          {exercises.map(ex => (
+          {strengthExercises.map(ex => (
             <ExerciseCard
               key={ex.id}
               exercise={ex}
@@ -118,6 +126,9 @@ export default function DailyView() {
               onUpdateDropset={updateDropset}
               onDeleteDropset={deleteDropset}
             />
+          ))}
+          {cardioExercises.map(ex => (
+            <CardioCard key={ex.id} exercise={ex} readOnly={!editMode} onDelete={deleteExercise} />
           ))}
 
           {editMode && (

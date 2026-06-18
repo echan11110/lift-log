@@ -8,6 +8,7 @@ import DailyView from './views/DailyView'
 import WeeklyView from './views/WeeklyView'
 import MonthlyView from './views/MonthlyView'
 import ProgressView from './views/ProgressView'
+import SplitsView from './views/SplitsView'
 
 export default function App() {
   const { user, loading } = useAuth()
@@ -48,10 +49,11 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Navigate to="/log" replace />} />
         <Route path="/log" element={<LogView />} />
-        <Route path="/daily" element={<DailyView />} />
-        <Route path="/week" element={<WeeklyView />} />
-        <Route path="/month" element={<MonthlyView />} />
+        <Route path="/daily" element={<Navigate to="/log" replace />} />
+        <Route path="/week" element={<Navigate to="/log" replace />} />
+        <Route path="/month" element={<Navigate to="/log" replace />} />
         <Route path="/progress" element={<ProgressView />} />
+        <Route path="/splits" element={<SplitsView />} />
         <Route path="*" element={<Navigate to="/log" replace />} />
       </Routes>
     </Layout>

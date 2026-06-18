@@ -2,9 +2,8 @@ import { NavLink } from 'react-router-dom'
 
 const tabs = [
   { to: '/log', label: 'Log', icon: PlusIcon },
-  { to: '/week', label: 'Week', icon: GridIcon },
-  { to: '/month', label: 'Month', icon: CalIcon },
   { to: '/progress', label: 'Progress', icon: ChartIcon },
+  { to: '/splits', label: 'Splits', icon: SplitsIcon },
 ]
 
 function PlusIcon() {
@@ -15,20 +14,10 @@ function PlusIcon() {
   )
 }
 
-function GridIcon() {
+function SplitsIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-6 h-6">
-      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
-      <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
-    </svg>
-  )
-}
-
-function CalIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="w-6 h-6">
-      <rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
+      <path d="M4 6h16M4 12h10M4 18h6" />
     </svg>
   )
 }

@@ -82,7 +82,7 @@ export function useWorkoutSession(date) {
   async function loadExercises(sessionId) {
     const { data: exData, error: exErr } = await supabase
       .from('exercises')
-      .select('*, sets(*, dropsets(*))')
+      .select('*, sets(*, dropsets(*)), cardio_entries(*)')
       .eq('session_id', sessionId)
       .order('exercise_order')
 
@@ -92,6 +92,7 @@ export function useWorkoutSession(date) {
       sets: (ex.sets ?? [])
         .sort((a, b) => a.set_number - b.set_number)
         .map(s => ({ ...s, dropsets: (s.dropsets ?? []).sort((a, b) => a.drop_order - b.drop_order) })),
+      cardio_entry: (ex.cardio_entries ?? [])[0] ?? null,
     }))
     setExercises(normalized)
   }
@@ -160,17 +161,51 @@ export function useWorkoutSession(date) {
     setExercises([])
   }
 
-  async function addExercise(name, splitType = 'Push') {
+  async function addExercise(name, splitType = null, exerciseType = 'strength') {
     const s = await ensureSession(splitType)
     const order = exercises.length + 1
     const { data, error: err } = await supabase
       .from('exercises')
-      .insert({ session_id: s.id, name, exercise_order: order })
+      .insert({ session_id: s.id, name, exercise_order: order, exercise_type: exerciseType })
       .select()
       .single()
     if (err) throw err
-    setExercises(prev => [...prev, { ...data, sets: [] }])
+    setExercises(prev => [...prev, { ...data, sets: [], cardio_entry: null }])
     return data
+  }
+
+  async function addCardioExercise(name, splitType, cardioData) {
+    const s = await ensureSession(splitType)
+    const order = exercises.length + 1
+    const { data: ex, error: exErr } = await supabase
+      .from('exercises')
+      .insert({ session_id: s.id, name, exercise_order: order, exercise_type: 'cardio' })
+      .select()
+      .single()
+    if (exErr) throw exErr
+    const { data: entry, error: entryErr } = await supabase
+      .from('cardio_entries')
+      .insert({ exercise_id: ex.id, ...cardioData })
+      .select()
+      .single()
+    if (entryErr) throw entryErr
+    setExercises(prev => [...prev, { ...ex, sets: [], cardio_entry: entry }])
+    return { ex, entry }
+  }
+
+  async function updateCardioEntry(exerciseId, cardioData) {
+    const ex = exercises.find(e => e.id === exerciseId)
+    if (!ex?.cardio_entry) return
+    const { data, error: err } = await supabase
+      .from('cardio_entries')
+      .update(cardioData)
+      .eq('id', ex.cardio_entry.id)
+      .select()
+      .single()
+    if (err) throw err
+    setExercises(prev => prev.map(e =>
+      e.id === exerciseId ? { ...e, cardio_entry: data } : e
+    ))
   }
 
   async function updateExercise(exerciseId, fields) {
@@ -286,6 +321,7 @@ export function useWorkoutSession(date) {
     saveState, retrySave,
     updateSession, updateNotes, deleteSession,
     addExercise, updateExercise, deleteExercise,
+    addCardioExercise, updateCardioEntry,
     addSet, updateSet, deleteSet,
     addDropset, updateDropset, deleteDropset,
     refresh: loadSession,

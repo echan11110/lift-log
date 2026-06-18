@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   LineChart, Line, BarChart, Bar,
@@ -10,6 +10,7 @@ import { shortDate } from '../lib/dateUtils'
 import { epley1RM, bestE1RM } from '../lib/strength'
 
 export default function ProgressView() {
+  const [progressTab, setProgressTab] = useState('strength')
   const [exercises, setExercises] = useState([])
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
@@ -90,9 +91,36 @@ export default function ProgressView() {
 
   return (
     <div>
-      {!selected ? (
+      <h2 className="font-condensed font-bold text-white uppercase tracking-wide mb-4" style={{fontSize:'1.75rem',lineHeight:1}}>Progress</h2>
+
+      {/* Strength / Cardio tab (only on list view) */}
+      {!selected && (
+        <div className="flex gap-2 mb-5">
+          <button
+            onClick={() => setProgressTab('strength')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+              progressTab === 'strength'
+                ? 'border-accent/40 bg-accent/15 text-accent'
+                : 'border-border text-zinc-600 hover:text-zinc-400'
+            }`}
+          >Strength</button>
+          <button
+            onClick={() => setProgressTab('cardio')}
+            className={`flex-1 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all cursor-pointer ${
+              progressTab === 'cardio'
+                ? 'border-blue-500/40 bg-blue-500/15 text-blue-400'
+                : 'border-border text-zinc-600 hover:text-zinc-400'
+            }`}
+          >Cardio</button>
+        </div>
+      )}
+
+      {/* Cardio summary pane */}
+      {!selected && progressTab === 'cardio' && <CardioProg />}
+
+      {!selected && progressTab === 'strength' ? (
         <>
-          <h2 className="font-condensed font-bold text-white uppercase tracking-wide mb-4" style={{fontSize:'1.75rem',lineHeight:1}}>Progress</h2>
+          <p className="text-[10px] text-zinc-600 text-center mb-3">Cardio activities are excluded from strength PRs and volume</p>
           <input
             type="text"
             value={query}
@@ -202,6 +230,74 @@ export default function ProgressView() {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+function CardioProg() {
+  const [cardioData, setCardioData] = useState([])
+  const [loadingCardio, setLoadingCardio] = useState(true)
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('exercises')
+        .select('name, cardio_entries(*), workout_sessions!inner(date, user_id)')
+        .eq('workout_sessions.user_id', user.id)
+        .eq('exercise_type', 'cardio')
+        .order('workout_sessions(date)', { ascending: false })
+      setCardioData(data ?? [])
+      setLoadingCardio(false)
+    }
+    load()
+  }, [])
+
+  if (loadingCardio) return <PageSpinner />
+
+  if (!cardioData.length) return (
+    <p className="text-zinc-600 text-center py-12">No cardio logged yet.</p>
+  )
+
+  const byActivity = {}
+  cardioData.forEach(ex => {
+    const entry = (ex.cardio_entries ?? [])[0]
+    if (!entry) return
+    if (!byActivity[ex.name]) byActivity[ex.name] = { sessions: 0, totalSec: 0, totalDist: 0 }
+    byActivity[ex.name].sessions++
+    byActivity[ex.name].totalSec += entry.duration_sec ?? 0
+    byActivity[ex.name].totalDist += entry.distance_m ?? 0
+  })
+
+  return (
+    <div>
+      {Object.entries(byActivity).map(([name, stats]) => {
+        const hrs = Math.floor(stats.totalSec / 3600)
+        const mins = Math.floor((stats.totalSec % 3600) / 60)
+        const timeLabel = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`
+        return (
+          <div key={name} className="bg-card border border-blue-500/20 rounded-2xl p-4 mb-3">
+            <p className="font-condensed font-bold text-white uppercase tracking-wide text-lg mb-3">{name}</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-surface border border-border rounded-xl p-2.5 text-center">
+                <p className="text-sm font-bold text-blue-400">{stats.sessions}</p>
+                <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-1">Sessions</p>
+              </div>
+              <div className="bg-surface border border-border rounded-xl p-2.5 text-center">
+                <p className="text-sm font-bold text-blue-400">{timeLabel}</p>
+                <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-1">Total time</p>
+              </div>
+              {stats.totalDist > 0 && (
+                <div className="bg-surface border border-border rounded-xl p-2.5 text-center">
+                  <p className="text-sm font-bold text-blue-400">{(stats.totalDist / 1000).toFixed(1)} km</p>
+                  <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-1">Total dist.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

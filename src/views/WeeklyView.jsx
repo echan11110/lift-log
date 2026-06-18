@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { weekRange, displayDate, todayStr, toDateStr, sessionVolume, DAY_LABELS } from '../lib/dateUtils'
+import { weekRange, displayDate, todayStr, toDateStr, sessionVolume, cardioDuration, formatDuration, DAY_LABELS } from '../lib/dateUtils'
 import SplitBadge from '../components/ui/SplitBadge'
 import ExerciseCard from '../components/workout/ExerciseCard'
+import CardioCard from '../components/workout/CardioCard'
 import { PageSpinner } from '../components/ui/Spinner'
 
 export default function WeeklyView() {
@@ -37,7 +38,7 @@ export default function WeeklyView() {
         const ids = sessionData.map(s => s.id)
         const { data: exData } = await supabase
           .from('exercises')
-          .select('*, sets(*, dropsets(*))')
+          .select('*, sets(*, dropsets(*)), cardio_entries(*)')
           .in('session_id', ids)
           .order('exercise_order')
 
@@ -49,6 +50,7 @@ export default function WeeklyView() {
             sets: (ex.sets ?? [])
               .sort((a, b) => a.set_number - b.set_number)
               .map(s => ({ ...s, dropsets: (s.dropsets ?? []).sort((a, b) => a.drop_order - b.drop_order) })),
+            cardio_entry: (ex.cardio_entries ?? [])[0] ?? null,
           })
         })
         setExerciseMap(exMap)
@@ -95,6 +97,7 @@ export default function WeeklyView() {
           const session = sessions[dateStr]
           const exercises = session ? (exerciseMap[session.id] ?? []) : []
           const volume = sessionVolume(exercises)
+          const cardioSec = cardioDuration(exercises)
           const isExpanded = expanded === dateStr
           const dayLabel = DAY_LABELS()[i]
           const dayNum = new Date(dateStr + 'T12:00:00').getDate()
@@ -116,7 +119,10 @@ export default function WeeklyView() {
                     <div className="flex items-center gap-2 mb-1">
                       <SplitBadge split={session.split_type} />
                     </div>
-                    <p className="text-zinc-500 text-xs">{exercises.length} exercises · {volume.toLocaleString()} lbs</p>
+                    <p className="text-zinc-500 text-xs">
+                      {exercises.filter(e => e.exercise_type !== 'cardio').length} exercises · {volume.toLocaleString()} lbs
+                      {cardioSec > 0 && <span className="text-blue-400"> · {formatDuration(cardioSec)} cardio</span>}
+                    </p>
                   </div>
                 ) : (
                   <p className="text-zinc-700 text-sm flex-1">{isFuture ? '—' : 'Rest day'}</p>
@@ -129,8 +135,11 @@ export default function WeeklyView() {
               {isExpanded && (
                 <div className="px-4 pb-4 border-t border-border">
                   <div className="pt-4 space-y-1">
-                    {exercises.map(ex => (
+                    {exercises.filter(e => e.exercise_type !== 'cardio').map(ex => (
                       <ExerciseCard key={ex.id} exercise={ex} readOnly />
+                    ))}
+                    {exercises.filter(e => e.exercise_type === 'cardio').map(ex => (
+                      <CardioCard key={ex.id} exercise={ex} readOnly />
                     ))}
                   </div>
                   {session?.notes && (

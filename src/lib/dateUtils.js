@@ -59,12 +59,25 @@ export function monthDays(year, month) {
 
 export function sessionVolume(exercises) {
   return exercises.reduce((total, ex) => {
-    const setVol = ex.sets.reduce((sv, s) => {
+    if (ex.exercise_type === 'cardio') return total
+    const setVol = (ex.sets ?? []).reduce((sv, s) => {
       const dropVol = (s.dropsets ?? []).reduce((dv, d) => dv + d.weight * d.reps, 0)
       return sv + s.weight * s.reps + dropVol
     }, 0)
     return total + setVol
   }, 0)
+}
+
+export function cardioDuration(exercises) {
+  return exercises
+    .filter(ex => ex.exercise_type === 'cardio')
+    .reduce((total, ex) => total + (ex.cardio_entry?.duration_sec ?? 0), 0)
+}
+
+export function formatDuration(totalSec) {
+  const m = Math.floor(totalSec / 60)
+  const s = totalSec % 60
+  return `${m}:${String(s).padStart(2, '0')}`
 }
 
 export function todayStr() {
