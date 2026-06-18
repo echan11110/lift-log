@@ -12,7 +12,8 @@ export default function DailyView() {
   const [editMode, setEditMode] = useState(false)
   const {
     session, exercises, loading, error,
-    updateSession, addExercise, deleteExercise,
+    saveState, retrySave,
+    updateSession, updateExercise, addExercise, deleteExercise,
     addSet, updateSet, deleteSet,
     addDropset, updateDropset, deleteDropset,
   } = useWorkoutSession(date)
@@ -93,12 +94,23 @@ export default function DailyView() {
             )}
           </div>
 
+          {saveState === 'saving' && (
+            <p className="text-xs text-zinc-500 text-right mb-2">Saving…</p>
+          )}
+          {saveState === 'error' && (
+            <button onClick={retrySave} className="text-xs text-red-400 text-right w-full mb-2">
+              Save failed — tap to retry
+            </button>
+          )}
+
           {exercises.map(ex => (
             <ExerciseCard
               key={ex.id}
               exercise={ex}
+              currentDate={date}
               readOnly={!editMode}
               onDelete={deleteExercise}
+              onRename={(id, name) => updateExercise(id, { name })}
               onAddSet={addSet}
               onUpdateSet={updateSet}
               onDeleteSet={deleteSet}

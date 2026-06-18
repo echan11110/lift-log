@@ -18,7 +18,8 @@ export default function LogView() {
   const [pendingSplit, setPendingSplit] = useState('Push')
   const {
     session, exercises, loading, error,
-    updateSession, addExercise, updateExercise, deleteExercise,
+    saveState, retrySave,
+    updateSession, updateNotes, addExercise, updateExercise, deleteExercise,
     addSet, updateSet, deleteSet,
     addDropset, updateDropset, deleteDropset,
   } = useWorkoutSession(date)
@@ -84,6 +85,15 @@ export default function LogView() {
         })}
       </div>
 
+      {saveState === 'saving' && (
+        <p className="text-xs text-zinc-500 text-right mb-2">Saving…</p>
+      )}
+      {saveState === 'error' && (
+        <button onClick={retrySave} className="text-xs text-red-400 text-right w-full mb-2">
+          Save failed — tap to retry
+        </button>
+      )}
+
       {exercises.map(ex => (
         <ExerciseCard
           key={ex.id}
@@ -108,7 +118,7 @@ export default function LogView() {
         <label className="block text-xs font-medium text-zinc-500 uppercase tracking-wider mb-2">Session notes</label>
         <textarea
           value={session?.notes ?? ''}
-          onChange={e => session && updateSession({ notes: e.target.value })}
+          onChange={e => updateNotes(e.target.value)}
           placeholder="How did it feel? Any PRs? Notes…"
           rows={3}
           className="w-full bg-card border border-border rounded-xl px-4 py-3 text-white placeholder-zinc-600 text-sm resize-none focus:outline-none focus:border-accent transition-colors"

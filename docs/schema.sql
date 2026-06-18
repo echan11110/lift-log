@@ -14,6 +14,8 @@ create table if not exists workout_sessions (
   unique (user_id, date)
 );
 
+-- Note: exercise_order, set_number, drop_order are maintained contiguous app-side on delete.
+
 -- exercises
 create table if not exists exercises (
   id              uuid primary key default gen_random_uuid(),
