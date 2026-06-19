@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 
-export default function ExerciseAutocomplete({ onAdd, search, searchCardio }) {
+export default function ExerciseAutocomplete({ onAdd, onAddCardio, search, searchCardio }) {
   const [value, setValue] = useState('')
   const [strengthSuggestions, setStrengthSuggestions] = useState([])
   const [cardioSuggestions, setCardioSuggestions] = useState([])
@@ -29,6 +29,15 @@ export default function ExerciseAutocomplete({ onAdd, search, searchCardio }) {
     setCardioSuggestions([])
     setOpen(false)
     onAdd(name)
+  }
+
+  function handleSelectCardio(name) {
+    setValue('')
+    setStrengthSuggestions([])
+    setCardioSuggestions([])
+    setOpen(false)
+    if (onAddCardio) onAddCardio(name)
+    else onAdd(name)
   }
 
   function handleKeyDown(e) {
@@ -94,7 +103,7 @@ export default function ExerciseAutocomplete({ onAdd, search, searchCardio }) {
               {cardioSuggestions.map(name => (
                 <li key={name}>
                   <button
-                    onMouseDown={e => { e.preventDefault(); handleSelect(name) }}
+                    onMouseDown={e => { e.preventDefault(); handleSelectCardio(name) }}
                     className="w-full text-left px-4 py-3 text-sm text-blue-400 hover:bg-border transition-colors flex items-center gap-2"
                   >
                     {name}

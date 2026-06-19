@@ -18,6 +18,8 @@ export default function LogView() {
   const [editMode, setEditMode] = useState(false)
   const [showCardio, setShowCardio] = useState(false)
   const [cardioSaving, setCardioSaving] = useState(false)
+  const [cardioError, setCardioError] = useState(null)
+  const [pendingCardioActivity, setPendingCardioActivity] = useState(null)
   const [pendingSplitLabel, setPendingSplitLabel] = useState(null)
 
   const {
@@ -72,17 +74,26 @@ export default function LogView() {
   }
 
   async function handleAddExercise(name) {
-    await addExercise(name, currentSplitLabel)
-    refreshNames()
     setEditMode(true)
+    try {
+      await addExercise(name, currentSplitLabel)
+      refreshNames()
+    } catch (err) {
+      setEditMode(false)
+      console.error('Failed to add exercise:', err)
+    }
   }
 
   async function handleSaveCardio(name, data) {
     setCardioSaving(true)
+    setCardioError(null)
     try {
       await addCardioExercise(name, currentSplitLabel, data)
       refreshNames()
       setShowCardio(false)
+      setPendingCardioActivity(null)
+    } catch (err) {
+      setCardioError(err?.message ?? 'Failed to save cardio')
     } finally {
       setCardioSaving(false)
     }
@@ -125,9 +136,11 @@ export default function LogView() {
     <div>
       <SegControl tab={tab} setTab={setTab} />
       <CardioEntryForm
+        initialActivity={pendingCardioActivity}
         onSave={handleSaveCardio}
-        onCancel={() => setShowCardio(false)}
+        onCancel={() => { setShowCardio(false); setPendingCardioActivity(null); setCardioError(null) }}
         saving={cardioSaving}
+        error={cardioError}
       />
     </div>
   )
@@ -257,6 +270,7 @@ export default function LogView() {
         <div className="mt-2">
           <ExerciseAutocomplete
             onAdd={handleAddExercise}
+            onAddCardio={(name) => { setPendingCardioActivity(name); setShowCardio(true) }}
             search={search}
             searchCardio={searchCardio}
           />

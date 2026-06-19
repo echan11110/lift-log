@@ -12,10 +12,11 @@ const ALL_FIELDS = [
 
 const DEFAULT_ENABLED = { distance: true, pace: true, calories: false, resistance: false }
 
-export default function CardioEntryForm({ onSave, onCancel, saving }) {
-  const [activity, setActivity] = useState(ACTIVITIES[0])
-  const [customActivity, setCustomActivity] = useState('')
-  const [addingCustom, setAddingCustom] = useState(false)
+export default function CardioEntryForm({ onSave, onCancel, saving, error = null, initialActivity = null }) {
+  const isKnown = initialActivity && ACTIVITIES.includes(initialActivity)
+  const [activity, setActivity] = useState(isKnown ? initialActivity : ACTIVITIES[0])
+  const [customActivity, setCustomActivity] = useState(!isKnown && initialActivity ? initialActivity : '')
+  const [addingCustom, setAddingCustom] = useState(!isKnown && !!initialActivity)
   const [durationMin, setDurationMin] = useState('')
   const [durationSec, setDurationSec] = useState('')
   const [distanceM, setDistanceM] = useState('')
@@ -192,6 +193,9 @@ export default function CardioEntryForm({ onSave, onCancel, saving }) {
         )}
       </div>
 
+      {error && (
+        <p className="text-red-400 text-sm text-center mb-3">{error}</p>
+      )}
       <button
         onClick={handleSave}
         disabled={!canSave || saving}
