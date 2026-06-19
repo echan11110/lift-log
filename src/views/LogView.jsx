@@ -74,6 +74,7 @@ export default function LogView() {
   async function handleAddExercise(name) {
     await addExercise(name, currentSplitLabel)
     refreshNames()
+    setEditMode(true)
   }
 
   async function handleSaveCardio(name, data) {
