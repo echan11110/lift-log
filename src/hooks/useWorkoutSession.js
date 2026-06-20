@@ -80,15 +80,28 @@ export function useWorkoutSession(date) {
   }, [date])
 
   async function loadExercises(sessionId) {
-    const { data: exData, error: exErr } = await supabase
+    let { data: exData, error: exErr } = await supabase
       .from('exercises')
       .select('*, sets(*, dropsets(*)), cardio_entries(*)')
       .eq('session_id', sessionId)
       .order('exercise_order')
 
+    // cardio_entries table missing (v2 migration not yet run) — fall back
+    // to strength-only query so existing data still loads
+    if (exErr?.message?.includes('cardio_entries')) {
+      const fallback = await supabase
+        .from('exercises')
+        .select('*, sets(*, dropsets(*))')
+        .eq('session_id', sessionId)
+        .order('exercise_order')
+      exData = fallback.data
+      exErr = fallback.error
+    }
+
     if (exErr) throw exErr
     const normalized = (exData ?? []).map(ex => ({
       ...ex,
+      exercise_type: ex.exercise_type ?? 'strength',
       sets: (ex.sets ?? [])
         .sort((a, b) => a.set_number - b.set_number)
         .map(s => ({ ...s, dropsets: (s.dropsets ?? []).sort((a, b) => a.drop_order - b.drop_order) })),
