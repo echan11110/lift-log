@@ -8,6 +8,7 @@ import CardioCard from '../components/workout/CardioCard'
 import CardioEntryForm from '../components/workout/CardioEntryForm'
 import ExerciseAutocomplete from '../components/workout/ExerciseAutocomplete'
 import SplitBadge from '../components/ui/SplitBadge'
+import CalendarPopover from '../components/ui/CalendarPopover'
 import { PageSpinner } from '../components/ui/Spinner'
 import WeeklyView from './WeeklyView'
 import MonthlyView from './MonthlyView'
@@ -21,6 +22,7 @@ export default function LogView() {
   const [cardioError, setCardioError] = useState(null)
   const [pendingCardioActivity, setPendingCardioActivity] = useState(null)
   const [pendingSplitLabel, setPendingSplitLabel] = useState(null)
+  const [showCalendar, setShowCalendar] = useState(false)
 
   const {
     session, exercises, loading, error,
@@ -43,6 +45,7 @@ export default function LogView() {
     setDate(toDateStr(d))
     setEditMode(false)
     setShowCardio(false)
+    setShowCalendar(false)
   }
 
   function nextDay() {
@@ -53,6 +56,7 @@ export default function LogView() {
       setDate(next)
       setEditMode(false)
       setShowCardio(false)
+      setShowCalendar(false)
     }
   }
 
@@ -151,11 +155,28 @@ export default function LogView() {
 
       {/* Date header */}
       <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="font-condensed font-bold text-white uppercase tracking-wide leading-none mb-1" style={{ fontSize: '1.75rem' }}>
-            {displayDate(date)}
-          </h2>
+        <div className="relative">
+          <button
+            onClick={() => setShowCalendar(c => !c)}
+            aria-label="Open calendar"
+            aria-expanded={showCalendar}
+            className="text-left group cursor-pointer"
+          >
+            <h2
+              className="font-condensed font-bold text-white uppercase tracking-wide leading-none mb-1 group-hover:text-accent transition-colors"
+              style={{ fontSize: '1.75rem' }}
+            >
+              {displayDate(date)}
+            </h2>
+          </button>
           {session && <SplitBadge split={session.split_type} />}
+          {showCalendar && (
+            <CalendarPopover
+              date={date}
+              onSelect={d => { setDate(d); setEditMode(false); setShowCardio(false) }}
+              onClose={() => setShowCalendar(false)}
+            />
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button
