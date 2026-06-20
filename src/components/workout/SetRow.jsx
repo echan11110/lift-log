@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import DropsetRow from './DropsetRow'
 
 export default function SetRow({ set, onUpdate, onDelete, onAddDropset, onUpdateDropset, onDeleteDropset, readOnly }) {
@@ -8,6 +8,7 @@ export default function SetRow({ set, onUpdate, onDelete, onAddDropset, onUpdate
   const [addingDrop, setAddingDrop] = useState(false)
   const [dropWeight, setDropWeight] = useState('')
   const [dropReps, setDropReps] = useState('')
+  const blurTimer = useRef(null)
 
   function saveEdit() {
     const w = parseFloat(weight)
@@ -35,14 +36,13 @@ export default function SetRow({ set, onUpdate, onDelete, onAddDropset, onUpdate
         <span className="text-zinc-500 text-xs w-5 text-center">{set.set_number}</span>
 
         {editing ? (
-          <div
-            style={{ display: 'contents' }}
-            onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) saveEdit() }}
-          >
+          <>
             <input
               type="number"
               value={weight}
               onChange={e => setWeight(e.target.value)}
+              onBlur={() => { blurTimer.current = setTimeout(saveEdit, 100) }}
+              onFocus={() => clearTimeout(blurTimer.current)}
               autoFocus
               className="w-16 bg-surface border border-accent rounded-lg px-2 py-1 text-white text-sm text-center focus:outline-none"
             />
@@ -51,11 +51,13 @@ export default function SetRow({ set, onUpdate, onDelete, onAddDropset, onUpdate
               type="number"
               value={reps}
               onChange={e => setReps(e.target.value)}
+              onBlur={() => { blurTimer.current = setTimeout(saveEdit, 100) }}
+              onFocus={() => clearTimeout(blurTimer.current)}
               onKeyDown={e => e.key === 'Enter' && saveEdit()}
               className="w-12 bg-surface border border-accent rounded-lg px-2 py-1 text-white text-sm text-center focus:outline-none"
             />
             <span className="text-zinc-600 text-xs">reps</span>
-          </div>
+          </>
         ) : (
           <>
             <span className="text-white text-sm font-medium">{set.weight} lbs</span>
