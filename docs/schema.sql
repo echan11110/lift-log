@@ -279,3 +279,15 @@ create policy "Users own their cardio entries"
 -- 10. Indexes for new tables
 create index if not exists idx_split_days_template   on split_days (template_id, day_index);
 create index if not exists idx_cardio_entries_exercise on cardio_entries (exercise_id);
+
+-- 11. Cardio name autocomplete RPC (uses exercise_type added above)
+create or replace function distinct_cardio_names(p_user_id uuid)
+returns setof text language sql stable as $$
+  select distinct e.name
+  from exercises e
+  join workout_sessions ws on ws.id = e.session_id
+  where ws.user_id = p_user_id
+    and e.exercise_type = 'cardio'
+  order by 1
+$$;
+grant execute on function distinct_cardio_names(uuid) to authenticated;
