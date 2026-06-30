@@ -291,3 +291,73 @@ returns setof text language sql stable as $$
   order by 1
 $$;
 grant execute on function distinct_cardio_names(uuid) to authenticated;
+
+-- ============================================================
+-- Migration v3 — Per-exercise cardio units + exercise catalog
+-- All statements are idempotent (safe to re-run).
+-- No existing columns renamed or dropped. No rows deleted.
+-- ============================================================
+
+-- 1. Cardio exercise definitions catalog
+-- Unit is freeform text (not a fixed enum) — different machines report
+-- distance in different units (steps, floors, calories, etc.) and we can't
+-- predict them all in advance. Only require it be non-empty.
+create table if not exists cardio_exercise_defs (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid references auth.users on delete cascade,
+  name       text not null,
+  unit       text not null check (length(trim(unit)) > 0),
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists uq_cardio_defs_system
+  on cardio_exercise_defs (name)
+  where user_id is null;
+
+create unique index if not exists uq_cardio_defs_user
+  on cardio_exercise_defs (user_id, name)
+  where user_id is not null;
+
+-- 2. RLS
+alter table cardio_exercise_defs enable row level security;
+
+create policy "Read system and own defs"
+  on cardio_exercise_defs for select
+  using (user_id is null or auth.uid() = user_id);
+
+create policy "Users insert their own defs"
+  on cardio_exercise_defs for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users update their own defs"
+  on cardio_exercise_defs for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "Users delete their own defs"
+  on cardio_exercise_defs for delete
+  using (auth.uid() = user_id);
+
+-- 3. Seed system defaults (fixed UUIDs — safe to re-run)
+insert into cardio_exercise_defs (id, user_id, name, unit) values
+  ('10000000-0000-0000-0000-000000000001', null, 'Rowing',       'm'),
+  ('10000000-0000-0000-0000-000000000002', null, 'Ski Erg',      'm'),
+  ('10000000-0000-0000-0000-000000000003', null, 'Swimming',     'm'),
+  ('10000000-0000-0000-0000-000000000004', null, 'Treadmill',    'mi'),
+  ('10000000-0000-0000-0000-000000000005', null, 'Bike',         'mi'),
+  ('10000000-0000-0000-0000-000000000006', null, 'Elliptical',   'min'),
+  ('10000000-0000-0000-0000-000000000007', null, 'Assault Bike', 'min'),
+  ('10000000-0000-0000-0000-000000000008', null, 'StairMaster',  'steps')
+on conflict do nothing;
+
+-- 4. Add distance_unit column to cardio_entries (nullable, additive)
+-- Freeform text so any machine-specific unit can be stored as typed.
+alter table cardio_entries
+  add column if not exists distance_unit text
+    check (distance_unit is null or length(trim(distance_unit)) > 0);
+
+-- 5. Backfill existing rows that have distance_m with unit 'm'
+update cardio_entries
+  set distance_unit = 'm'
+  where distance_unit is null
+    and distance_m is not null;

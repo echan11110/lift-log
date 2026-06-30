@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { useWorkoutSession } from '../hooks/useWorkoutSession'
 import { useExerciseNames } from '../hooks/useExerciseNames'
+import { useCardioDefs } from '../hooks/useCardioDefs'
 import { displayDate, todayStr, toDateStr, sessionVolume, cardioDuration, formatDuration } from '../lib/dateUtils'
 import ExerciseCard from '../components/workout/ExerciseCard'
 import CardioCard from '../components/workout/CardioCard'
+import CardioEntryForm from '../components/workout/CardioEntryForm'
 import ExerciseAutocomplete from '../components/workout/ExerciseAutocomplete'
 import SplitBadge from '../components/ui/SplitBadge'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -11,20 +13,31 @@ import { PageSpinner } from '../components/ui/Spinner'
 export default function DailyView() {
   const [date, setDate] = useState(todayStr())
   const [editMode, setEditMode] = useState(false)
+  const [cardioForm, setCardioForm] = useState(null)
+  // cardioForm: null
+  //   | { mode: 'create', initialActivity: string }
+  //   | { mode: 'edit', exercise: object }
+  const [cardioSaving, setCardioSaving] = useState(false)
+  const [cardioError, setCardioError] = useState(null)
+
   const {
     session, exercises, loading, error,
     saveState, retrySave,
     updateSession, updateExercise, addExercise, deleteExercise,
+    addCardioExercise, updateCardioEntry,
     addSet, updateSet, deleteSet,
     addDropset, updateDropset, deleteDropset,
   } = useWorkoutSession(date)
-  const { search } = useExerciseNames()
+
+  const { search, searchCardio } = useExerciseNames()
+  const { defs, addDef } = useCardioDefs()
 
   function prevDay() {
     const d = new Date(date + 'T12:00:00')
     d.setDate(d.getDate() - 1)
     setDate(toDateStr(d))
     setEditMode(false)
+    setCardioForm(null)
   }
 
   function nextDay() {
@@ -34,6 +47,35 @@ export default function DailyView() {
     if (next <= todayStr()) {
       setDate(next)
       setEditMode(false)
+      setCardioForm(null)
+    }
+  }
+
+  async function handleSaveCardio(name, data) {
+    setCardioSaving(true)
+    setCardioError(null)
+    try {
+      await addCardioExercise(name, session?.split_type ?? 'Push', data)
+      setCardioForm(null)
+    } catch (err) {
+      setCardioError(err.message)
+    } finally {
+      setCardioSaving(false)
+    }
+  }
+
+  async function handleUpdateCardio(name, data) {
+    setCardioSaving(true)
+    setCardioError(null)
+    try {
+      const ex = cardioForm.exercise
+      await updateCardioEntry(ex.id, data)
+      if (name !== ex.name) await updateExercise(ex.id, { name })
+      setCardioForm(null)
+    } catch (err) {
+      setCardioError(err.message)
+    } finally {
+      setCardioSaving(false)
     }
   }
 
@@ -45,6 +87,23 @@ export default function DailyView() {
 
   if (loading) return <PageSpinner />
   if (error) return <p className="text-red-400 text-sm py-6 text-center">{error}</p>
+
+  if (cardioForm) {
+    const isEdit = cardioForm.mode === 'edit'
+    return (
+      <CardioEntryForm
+        defs={defs}
+        onSave={handleSaveCardio}
+        onUpdate={handleUpdateCardio}
+        onAddDef={addDef}
+        onCancel={() => { setCardioForm(null); setCardioError(null) }}
+        saving={cardioSaving}
+        error={cardioError}
+        initialActivity={!isEdit ? cardioForm.initialActivity : undefined}
+        initialValues={isEdit ? { ...cardioForm.exercise.cardio_entry, name: cardioForm.exercise.name } : undefined}
+      />
+    )
+  }
 
   return (
     <div>
@@ -128,12 +187,23 @@ export default function DailyView() {
             />
           ))}
           {cardioExercises.map(ex => (
-            <CardioCard key={ex.id} exercise={ex} readOnly={!editMode} onDelete={deleteExercise} />
+            <CardioCard
+              key={ex.id}
+              exercise={ex}
+              readOnly={!editMode}
+              onDelete={deleteExercise}
+              onEdit={(exercise) => setCardioForm({ mode: 'edit', exercise })}
+            />
           ))}
 
           {editMode && (
             <div className="mt-4">
-              <ExerciseAutocomplete onAdd={addExercise} search={search} />
+              <ExerciseAutocomplete
+                onAdd={addExercise}
+                onAddCardio={(name) => setCardioForm({ mode: 'create', initialActivity: name })}
+                search={search}
+                searchCardio={searchCardio}
+              />
             </div>
           )}
         </>

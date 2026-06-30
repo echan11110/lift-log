@@ -118,7 +118,7 @@ export default function ProgressView() {
       {/* Cardio summary pane */}
       {!selected && progressTab === 'cardio' && <CardioProg />}
 
-      {!selected && progressTab === 'strength' ? (
+      {!selected && progressTab === 'strength' && (
         <>
           <p className="text-[10px] text-zinc-600 text-center mb-3">Cardio activities are excluded from strength PRs and volume</p>
           <input
@@ -144,7 +144,9 @@ export default function ProgressView() {
             </div>
           )}
         </>
-      ) : (
+      )}
+
+      {selected && (
         <>
           <div className="flex items-center gap-3 mb-5">
             <button
@@ -234,6 +236,21 @@ export default function ProgressView() {
   )
 }
 
+function formatCardioDistance(distance_m, unit) {
+  if (distance_m == null || distance_m === 0) return null
+  const u = unit || 'm'
+  if (u === 'min') return null
+  if (u === 'km') return { value: (distance_m / 1000).toFixed(2), unit: 'km' }
+  if (u === 'mi') return { value: (distance_m / 1609.344).toFixed(2), unit: 'mi' }
+  return { value: Number(distance_m).toLocaleString(), unit: u }
+}
+
+function formatTotalDuration(totalSec) {
+  const hrs = Math.floor(totalSec / 3600)
+  const mins = Math.floor((totalSec % 3600) / 60)
+  return hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`
+}
+
 function CardioProg() {
   const [cardioData, setCardioData] = useState([])
   const [loadingCardio, setLoadingCardio] = useState(true)
@@ -247,7 +264,7 @@ function CardioProg() {
         .select('name, cardio_entries(*), workout_sessions!inner(date, user_id)')
         .eq('workout_sessions.user_id', user.id)
         .eq('exercise_type', 'cardio')
-        .order('workout_sessions(date)', { ascending: false })
+        .order('workout_sessions(date)', { ascending: true })
       setCardioData(data ?? [])
       setLoadingCardio(false)
     }
@@ -260,41 +277,86 @@ function CardioProg() {
     <p className="text-zinc-600 text-center py-12">No cardio logged yet.</p>
   )
 
+  // Group by activity name, compute totals and PR detection
   const byActivity = {}
   cardioData.forEach(ex => {
     const entry = (ex.cardio_entries ?? [])[0]
     if (!entry) return
-    if (!byActivity[ex.name]) byActivity[ex.name] = { sessions: 0, totalSec: 0, totalDist: 0 }
-    byActivity[ex.name].sessions++
-    byActivity[ex.name].totalSec += entry.duration_sec ?? 0
-    byActivity[ex.name].totalDist += entry.distance_m ?? 0
+    const name = ex.name
+    if (!byActivity[name]) {
+      byActivity[name] = {
+        sessions: 0, totalSec: 0, totalDist: 0,
+        unit: entry.distance_unit ?? 'm',
+        bestDurationSec: 0, bestDist: 0,
+        bestDurationDate: null, bestDistDate: null,
+      }
+    }
+    const a = byActivity[name]
+    a.sessions++
+    a.totalSec += entry.duration_sec ?? 0
+    a.totalDist += entry.distance_m ?? 0
+
+    if ((entry.duration_sec ?? 0) > a.bestDurationSec) {
+      a.bestDurationSec = entry.duration_sec ?? 0
+      a.bestDurationDate = ex.workout_sessions?.date
+    }
+    if ((entry.distance_m ?? 0) > a.bestDist) {
+      a.bestDist = entry.distance_m ?? 0
+      a.bestDistDate = ex.workout_sessions?.date
+    }
   })
 
   return (
     <div>
       {Object.entries(byActivity).map(([name, stats]) => {
-        const hrs = Math.floor(stats.totalSec / 3600)
-        const mins = Math.floor((stats.totalSec % 3600) / 60)
-        const timeLabel = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`
+        const distFmt = formatCardioDistance(stats.totalDist, stats.unit)
+        const bestDistFmt = formatCardioDistance(stats.bestDist, stats.unit)
         return (
           <div key={name} className="bg-card border border-blue-500/20 rounded-2xl p-4 mb-3">
             <p className="font-condensed font-bold text-white uppercase tracking-wide text-lg mb-3">{name}</p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2 mb-2">
               <div className="bg-surface border border-border rounded-xl p-2.5 text-center">
                 <p className="text-sm font-bold text-blue-400">{stats.sessions}</p>
                 <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-1">Sessions</p>
               </div>
               <div className="bg-surface border border-border rounded-xl p-2.5 text-center">
-                <p className="text-sm font-bold text-blue-400">{timeLabel}</p>
+                <p className="text-sm font-bold text-blue-400">{formatTotalDuration(stats.totalSec)}</p>
                 <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-1">Total time</p>
               </div>
-              {stats.totalDist > 0 && (
+              {distFmt && (
                 <div className="bg-surface border border-border rounded-xl p-2.5 text-center">
-                  <p className="text-sm font-bold text-blue-400">{(stats.totalDist / 1000).toFixed(1)} km</p>
+                  <p className="text-sm font-bold text-blue-400">{distFmt.value} {distFmt.unit}</p>
                   <p className="text-[9px] text-zinc-600 uppercase tracking-wider mt-1">Total dist.</p>
                 </div>
               )}
             </div>
+            {/* PRs */}
+            {(stats.bestDurationSec > 0 || stats.bestDist > 0) && (
+              <div className="mt-2 pt-2 border-t border-border space-y-1">
+                {stats.bestDurationSec > 0 && stats.bestDurationDate && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-600 uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-amber-400">★</span> Longest session
+                    </span>
+                    <span className="text-xs text-amber-400 font-semibold">
+                      {formatTotalDuration(stats.bestDurationSec)}
+                      <span className="text-zinc-600 font-normal ml-1">{shortDate(stats.bestDurationDate)}</span>
+                    </span>
+                  </div>
+                )}
+                {bestDistFmt && stats.bestDistDate && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-zinc-600 uppercase tracking-wider flex items-center gap-1">
+                      <span className="text-amber-400">★</span> Best distance
+                    </span>
+                    <span className="text-xs text-amber-400 font-semibold">
+                      {bestDistFmt.value} {bestDistFmt.unit}
+                      <span className="text-zinc-600 font-normal ml-1">{shortDate(stats.bestDistDate)}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )
       })}

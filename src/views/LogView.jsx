@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useWorkoutSession } from '../hooks/useWorkoutSession'
 import { useExerciseNames } from '../hooks/useExerciseNames'
+import { useCardioDefs } from '../hooks/useCardioDefs'
 import { useSplitTemplates } from '../hooks/useSplitTemplates'
 import { displayDate, todayStr, toDateStr, sessionVolume, cardioDuration, formatDuration } from '../lib/dateUtils'
 import ExerciseCard from '../components/workout/ExerciseCard'
@@ -17,10 +18,12 @@ export default function LogView() {
   const [tab, setTab] = useState('day')
   const [date, setDate] = useState(todayStr())
   const [editMode, setEditMode] = useState(false)
-  const [showCardio, setShowCardio] = useState(false)
+  const [cardioForm, setCardioForm] = useState(null)
+  // cardioForm: null
+  //   | { mode: 'create', initialActivity: string }
+  //   | { mode: 'edit', exercise: object }
   const [cardioSaving, setCardioSaving] = useState(false)
   const [cardioError, setCardioError] = useState(null)
-  const [pendingCardioActivity, setPendingCardioActivity] = useState(null)
   const [pendingSplitLabel, setPendingSplitLabel] = useState(null)
   const [showCalendar, setShowCalendar] = useState(false)
 
@@ -31,10 +34,11 @@ export default function LogView() {
     addExercise, updateExercise, deleteExercise,
     addSet, updateSet, deleteSet,
     addDropset, updateDropset, deleteDropset,
-    addCardioExercise, deleteExercise: removeExercise,
+    addCardioExercise, updateCardioEntry,
   } = useWorkoutSession(date)
 
   const { search, searchCardio, refresh: refreshNames } = useExerciseNames()
+  const { defs, addDef } = useCardioDefs()
   const { templates } = useSplitTemplates()
 
   const isToday = date === todayStr()
@@ -44,7 +48,7 @@ export default function LogView() {
     d.setDate(d.getDate() - 1)
     setDate(toDateStr(d))
     setEditMode(false)
-    setShowCardio(false)
+    setCardioForm(null)
     setShowCalendar(false)
   }
 
@@ -55,7 +59,7 @@ export default function LogView() {
     if (next <= todayStr()) {
       setDate(next)
       setEditMode(false)
-      setShowCardio(false)
+      setCardioForm(null)
       setShowCalendar(false)
     }
   }
@@ -94,10 +98,24 @@ export default function LogView() {
     try {
       await addCardioExercise(name, currentSplitLabel, data)
       refreshNames()
-      setShowCardio(false)
-      setPendingCardioActivity(null)
+      setCardioForm(null)
     } catch (err) {
       setCardioError(err?.message ?? 'Failed to save cardio')
+    } finally {
+      setCardioSaving(false)
+    }
+  }
+
+  async function handleUpdateCardio(name, data) {
+    setCardioSaving(true)
+    setCardioError(null)
+    try {
+      const ex = cardioForm.exercise
+      await updateCardioEntry(ex.id, data)
+      if (name !== ex.name) await updateExercise(ex.id, { name })
+      setCardioForm(null)
+    } catch (err) {
+      setCardioError(err?.message ?? 'Failed to update cardio')
     } finally {
       setCardioSaving(false)
     }
@@ -136,18 +154,25 @@ export default function LogView() {
     </div>
   )
 
-  if (showCardio) return (
-    <div>
-      <SegControl tab={tab} setTab={setTab} />
-      <CardioEntryForm
-        initialActivity={pendingCardioActivity}
-        onSave={handleSaveCardio}
-        onCancel={() => { setShowCardio(false); setPendingCardioActivity(null); setCardioError(null) }}
-        saving={cardioSaving}
-        error={cardioError}
-      />
-    </div>
-  )
+  if (cardioForm) {
+    const isEdit = cardioForm.mode === 'edit'
+    return (
+      <div>
+        <SegControl tab={tab} setTab={setTab} />
+        <CardioEntryForm
+          defs={defs}
+          onSave={handleSaveCardio}
+          onUpdate={handleUpdateCardio}
+          onAddDef={addDef}
+          onCancel={() => { setCardioForm(null); setCardioError(null) }}
+          saving={cardioSaving}
+          error={cardioError}
+          initialActivity={!isEdit ? cardioForm.initialActivity : undefined}
+          initialValues={isEdit ? { ...cardioForm.exercise.cardio_entry, name: cardioForm.exercise.name } : undefined}
+        />
+      </div>
+    )
+  }
 
   return (
     <div>
@@ -173,7 +198,7 @@ export default function LogView() {
           {showCalendar && (
             <CalendarPopover
               date={date}
-              onSelect={d => { setDate(d); setEditMode(false); setShowCardio(false) }}
+              onSelect={d => { setDate(d); setEditMode(false); setCardioForm(null) }}
               onClose={() => setShowCalendar(false)}
             />
           )}
@@ -283,6 +308,7 @@ export default function LogView() {
           exercise={ex}
           readOnly={session ? !editMode : false}
           onDelete={deleteExercise}
+          onEdit={(exercise) => setCardioForm({ mode: 'edit', exercise })}
         />
       ))}
 
@@ -291,7 +317,7 @@ export default function LogView() {
         <div className="mt-2">
           <ExerciseAutocomplete
             onAdd={handleAddExercise}
-            onAddCardio={(name) => { setPendingCardioActivity(name); setShowCardio(true) }}
+            onAddCardio={(name) => setCardioForm({ mode: 'create', initialActivity: name })}
             search={search}
             searchCardio={searchCardio}
           />
@@ -318,7 +344,7 @@ export default function LogView() {
           {cardioExercises.length > 0 ? 'Add more cardio' : 'Add cardio for today'}
         </span>
         <button
-          onClick={() => setShowCardio(true)}
+          onClick={() => setCardioForm({ mode: 'create', initialActivity: null })}
           className="px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
         >
           + Cardio
