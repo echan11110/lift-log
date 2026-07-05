@@ -8,3 +8,4 @@ dist/
 .env.local
 .claude-flow/
 .gstack/
+graphify-out/
