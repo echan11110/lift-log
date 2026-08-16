@@ -36,7 +36,7 @@ export default function ProgressView() {
 
     const { data: exData } = await supabase
       .from('exercises')
-      .select('id, workout_sessions!inner(date, user_id), sets(weight, reps, set_number, dropsets(weight, reps))')
+      .select('id, workout_sessions!inner(date, user_id), sets(weight, reps, set_number, dropsets(weight, reps, drop_order))')
       .eq('name', name)
       .eq('workout_sessions.user_id', user.id)
       .order('workout_sessions(date)')
@@ -54,6 +54,15 @@ export default function ProgressView() {
       // e1RM from main sets only (no dropsets)
       const { e1rm, set: prSet } = bestE1RM(sets)
 
+      // Same set objects, ordered for display — prSet stays reference-comparable
+      const orderedSets = [...sets]
+        .sort((a, b) => a.set_number - b.set_number)
+        .map(s => ({
+          ...s,
+          dropsets: [...(s.dropsets ?? [])].sort((a, b) => a.drop_order - b.drop_order),
+          isTopSet: s === prSet,
+        }))
+
       let maxWeight = 0
       let volume = 0
       for (const s of sets) {
@@ -62,7 +71,7 @@ export default function ProgressView() {
         for (const d of (s.dropsets ?? [])) volume += d.weight * d.reps
       }
 
-      rows.push({ date, e1rm, prSet, maxWeight, volume, isPR: false, displayDate: shortDate(date) })
+      rows.push({ date, e1rm, prSet, sets: orderedSets, maxWeight, volume, isPR: false, displayDate: shortDate(date) })
     }
 
     // PR detection keyed off e1RM so same-weight/more-reps sessions register
@@ -210,13 +219,43 @@ export default function ProgressView() {
                         <span className="text-amber-400">★</span>
                         <span>Personal Records</span>
                       </h3>
-                      <div className="space-y-2">
+                      <div className="divide-y divide-border">
                         {[...prs].reverse().map((pr, i) => (
-                          <div key={i} className="flex items-center justify-between">
-                            <span className="text-zinc-400 text-sm">{pr.date}</span>
-                            <span className="text-amber-400 font-semibold text-sm">
-                              {pr.prSet.weight}×{pr.prSet.reps} — e1RM {Math.round(pr.e1rm)}
-                            </span>
+                          <div key={pr.date ?? i} className="py-3 first:pt-0 last:pb-0">
+                            <div className="flex items-baseline justify-between mb-2">
+                              <span className="text-zinc-400 text-sm">{pr.date}</span>
+                              <span className="text-amber-400 font-semibold text-sm">
+                                e1RM {Math.round(pr.e1rm)}
+                              </span>
+                            </div>
+
+                            <div className="space-y-1">
+                              {pr.sets.map((s, si) => (
+                                <div key={si}>
+                                  <div className="flex items-baseline gap-2 text-xs">
+                                    <span className="text-zinc-600 w-3 shrink-0 tabular-nums">{si + 1}</span>
+                                    <span className={s.isTopSet ? 'text-amber-400 font-semibold' : 'text-zinc-300'}>
+                                      {s.weight}×{s.reps}
+                                    </span>
+                                    {s.isTopSet && <span className="text-amber-400 text-[10px]">★</span>}
+                                    <span className="ml-auto text-zinc-600 tabular-nums">
+                                      {Math.round(epley1RM(s.weight, s.reps))}
+                                    </span>
+                                  </div>
+                                  {s.dropsets.map((d, di) => (
+                                    <div key={di} className="flex items-baseline gap-2 text-[11px] pl-5 text-zinc-600">
+                                      <span className="shrink-0">↳</span>
+                                      <span>{d.weight}×{d.reps}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="flex justify-between text-[10px] text-zinc-600 uppercase tracking-wider mt-2">
+                              <span>{pr.sets.length} set{pr.sets.length === 1 ? '' : 's'}</span>
+                              <span>{pr.volume.toLocaleString()} lbs volume</span>
+                            </div>
                           </div>
                         ))}
                       </div>
