@@ -109,30 +109,11 @@ create index if not exists idx_dropsets_set          on dropsets (set_id, drop_o
 -- ============================================================
 -- RPCs
 -- ============================================================
-
--- Returns sorted distinct strength exercise names for a user.
-create or replace function distinct_exercise_names(p_user_id uuid)
-returns setof text language sql stable as $$
-  select distinct e.name
-  from exercises e
-  join workout_sessions ws on ws.id = e.session_id
-  where ws.user_id = p_user_id
-    and e.exercise_type = 'strength'
-  order by 1
-$$;
-grant execute on function distinct_exercise_names(uuid) to authenticated;
-
--- Returns sorted distinct cardio activity names for a user.
-create or replace function distinct_cardio_names(p_user_id uuid)
-returns setof text language sql stable as $$
-  select distinct e.name
-  from exercises e
-  join workout_sessions ws on ws.id = e.session_id
-  where ws.user_id = p_user_id
-    and e.exercise_type = 'cardio'
-  order by 1
-$$;
-grant execute on function distinct_cardio_names(uuid) to authenticated;
+--
+-- Both name-autocomplete RPCs filter on exercises.exercise_type, which is
+-- added by migration v2 below. LANGUAGE sql function bodies are parsed at
+-- CREATE time, so defining them here would fail on a fresh database with
+-- "column e.exercise_type does not exist". They live in the v2 block instead.
 
 -- ============================================================
 -- Migration v2 — Custom Splits + Cardio
@@ -280,7 +261,21 @@ create policy "Users own their cardio entries"
 create index if not exists idx_split_days_template   on split_days (template_id, day_index);
 create index if not exists idx_cardio_entries_exercise on cardio_entries (exercise_id);
 
--- 11. Cardio name autocomplete RPC (uses exercise_type added above)
+-- 11. Name autocomplete RPCs (use exercise_type added above)
+-- Both live here rather than in the base block because their bodies reference
+-- exercise_type. Re-running this block repairs a database whose functions
+-- predate the exercise_type filter.
+create or replace function distinct_exercise_names(p_user_id uuid)
+returns setof text language sql stable as $$
+  select distinct e.name
+  from exercises e
+  join workout_sessions ws on ws.id = e.session_id
+  where ws.user_id = p_user_id
+    and e.exercise_type = 'strength'
+  order by 1
+$$;
+grant execute on function distinct_exercise_names(uuid) to authenticated;
+
 create or replace function distinct_cardio_names(p_user_id uuid)
 returns setof text language sql stable as $$
   select distinct e.name
