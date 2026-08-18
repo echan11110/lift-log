@@ -167,15 +167,15 @@ export default function ProgressView() {
 
           {chartLoading ? <PageSpinner /> : (
             <>
-              <div className="grid grid-cols-2 gap-3 mb-5">
-                <Stat label="Best e1RM" value={`${Math.round(bestAllTimeE1RM)} lbs`} accent />
-                <Stat label="Heaviest" value={`${allTimeMaxWeight} lbs`} />
-                <Stat label="Sessions" value={data.length} />
-                <Stat label="Total Volume" value={`${(totalVolume / 1000).toFixed(1)}k lbs`} />
-              </div>
-
               {data.length > 0 && (
                 <>
+                  <div className="grid grid-cols-2 gap-3 mb-5">
+                    <Stat label="Best e1RM" value={`${Math.round(bestAllTimeE1RM)} lbs`} accent />
+                    <Stat label="Heaviest" value={`${allTimeMaxWeight} lbs`} />
+                    <Stat label="Sessions" value={data.length} />
+                    <Stat label="Total Volume" value={`${(totalVolume / 1000).toFixed(1)}k lbs`} />
+                  </div>
+
                   <ChartCard title="Est. 1RM per Session">
                     <ResponsiveContainer width="100%" height={180}>
                       <LineChart data={data} margin={{ top: 10, right: 10, bottom: 0, left: -10 }}>
@@ -265,7 +265,12 @@ export default function ProgressView() {
               )}
 
               {data.length === 0 && (
-                <p className="text-zinc-600 text-center py-12">No data for {selected} yet.</p>
+                <div className="text-center py-12">
+                  <p className="text-zinc-500">No sets logged for {selected} yet.</p>
+                  <p className="text-zinc-600 text-xs mt-2">
+                    Progress is tracked from logged sets. Add one in the Log tab to see charts and records here.
+                  </p>
+                </div>
               )}
             </>
           )}
