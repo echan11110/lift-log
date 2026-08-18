@@ -51,9 +51,10 @@ export default function CardioCard({ exercise, onDelete, onEdit, readOnly }) {
             {onEdit && (
               <button
                 onClick={() => onEdit(exercise)}
+                aria-label={`Edit ${exercise.name} cardio entry`}
                 className="text-zinc-700 hover:text-blue-400 p-1.5 rounded-lg transition-colors cursor-pointer"
               >
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4" aria-hidden="true">
                   <path d="M13.586 3.586a2 2 0 112.828 2.828L7 13.828 3 14l.172-4L13.586 3.586z" />
                 </svg>
               </button>
@@ -61,9 +62,10 @@ export default function CardioCard({ exercise, onDelete, onEdit, readOnly }) {
             {onDelete && (
               <button
                 onClick={() => onDelete(exercise.id)}
+                aria-label={`Delete ${exercise.name} cardio entry`}
                 className="text-zinc-700 hover:text-red-400 p-1.5 rounded-lg transition-colors cursor-pointer"
               >
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4" aria-hidden="true">
                   <polyline points="3 6 5 6 17 6" /><path d="M8 6V4h4v2" />
                   <path d="M5 6l1 11h8l1-11" />
                 </svg>

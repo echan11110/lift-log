@@ -206,11 +206,13 @@ export default function LogView() {
         <div className="flex items-center gap-2">
           <button
             onClick={prevDay}
+            aria-label="Previous day"
             className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border text-zinc-400 hover:text-white transition-colors cursor-pointer"
           >←</button>
           <button
             onClick={nextDay}
             disabled={isToday}
+            aria-label="Next day"
             className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border text-zinc-400 hover:text-white disabled:opacity-30 transition-colors cursor-pointer"
           >→</button>
         </div>

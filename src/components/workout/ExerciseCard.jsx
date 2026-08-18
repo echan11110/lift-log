@@ -64,9 +64,10 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
         {!readOnly && (
           <button
             onClick={() => onDelete(exercise.id)}
+            aria-label={`Delete ${exercise.name}`}
             className="text-zinc-700 hover:text-red-400 p-1.5 rounded-lg transition-colors cursor-pointer"
           >
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4" aria-hidden="true">
               <polyline points="3 6 5 6 17 6" /><path d="M8 6V4h4v2" />
               <path d="M5 6l1 11h8l1-11" />
             </svg>

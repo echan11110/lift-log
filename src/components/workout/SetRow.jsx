@@ -72,18 +72,27 @@ export default function SetRow({ set, onUpdate, onDelete, onAddDropset, onUpdate
               onClick={() => setAddingDrop(!addingDrop)}
               className="text-zinc-500 hover:text-zinc-300 px-2 py-1 text-xs rounded transition-colors"
               title="Add dropset"
+              aria-label={`Add dropset to set ${set.set_number}`}
             >
               ↓drop
             </button>
             {!editing && (
-              <button onClick={() => setEditing(true)} className="text-zinc-500 hover:text-zinc-300 p-1 rounded transition-colors">
-                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
+              <button
+                onClick={() => setEditing(true)}
+                aria-label={`Edit set ${set.set_number}`}
+                className="text-zinc-500 hover:text-zinc-300 p-1 rounded transition-colors"
+              >
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5" aria-hidden="true">
                   <path d="M11.7 2.3a1 1 0 011.4 1.4L5 12 2 13l1-3 8.7-7.7z" />
                 </svg>
               </button>
             )}
-            <button onClick={() => onDelete(set.id)} className="text-zinc-600 hover:text-red-400 p-1 rounded transition-colors">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5">
+            <button
+              onClick={() => onDelete(set.id)}
+              aria-label={`Delete set ${set.set_number}`}
+              className="text-zinc-600 hover:text-red-400 p-1 rounded transition-colors"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5" aria-hidden="true">
                 <line x1="4" y1="4" x2="12" y2="12" /><line x1="12" y1="4" x2="4" y2="12" />
               </svg>
             </button>
@@ -122,7 +131,11 @@ export default function SetRow({ set, onUpdate, onDelete, onAddDropset, onUpdate
             className="w-12 bg-surface border border-border rounded-lg px-2 py-1 text-white text-sm text-center focus:outline-none focus:border-accent"
           />
           <button onClick={submitDrop} className="text-accent text-xs hover:text-blue-400 transition-colors px-1">Add</button>
-          <button onClick={() => setAddingDrop(false)} className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors">×</button>
+          <button
+            onClick={() => setAddingDrop(false)}
+            aria-label="Cancel dropset"
+            className="text-zinc-600 text-xs hover:text-zinc-400 transition-colors"
+          >×</button>
         </div>
       )}
     </div>

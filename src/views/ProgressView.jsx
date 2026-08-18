@@ -160,6 +160,7 @@ export default function ProgressView() {
           <div className="flex items-center gap-3 mb-5">
             <button
               onClick={() => setSelected(null)}
+              aria-label="Back to exercise list"
               className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border text-zinc-400 hover:text-white transition-colors cursor-pointer"
             >←</button>
             <h2 className="font-condensed font-bold text-white uppercase tracking-wide truncate" style={{fontSize:'1.5rem',lineHeight:1}}>{selected}</h2>
