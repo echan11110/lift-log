@@ -1,14 +1,16 @@
+import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SUPABASE_CONFIGURED } from './lib/supabase'
 import { useAuth } from './hooks/useAuth'
 import AuthPage from './components/auth/AuthPage'
 import Layout from './components/layout/Layout'
+import { PageSpinner } from './components/ui/Spinner'
 import LogView from './views/LogView'
-import DailyView from './views/DailyView'
-import WeeklyView from './views/WeeklyView'
-import MonthlyView from './views/MonthlyView'
-import ProgressView from './views/ProgressView'
 import SplitsView from './views/SplitsView'
+
+// Progress is the only route that pulls in recharts (~1.2 MB unminified).
+// Splitting it keeps that weight off the initial load of /log.
+const ProgressView = lazy(() => import('./views/ProgressView'))
 
 export default function App() {
   const { user, loading } = useAuth()
@@ -52,7 +54,14 @@ export default function App() {
         <Route path="/daily" element={<Navigate to="/log" replace />} />
         <Route path="/week" element={<Navigate to="/log" replace />} />
         <Route path="/month" element={<Navigate to="/log" replace />} />
-        <Route path="/progress" element={<ProgressView />} />
+        <Route
+          path="/progress"
+          element={
+            <Suspense fallback={<PageSpinner />}>
+              <ProgressView />
+            </Suspense>
+          }
+        />
         <Route path="/splits" element={<SplitsView />} />
         <Route path="*" element={<Navigate to="/log" replace />} />
       </Routes>

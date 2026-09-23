@@ -222,6 +222,7 @@ export default function CardioEntryForm({
         <button
           type="button"
           onClick={onCancel}
+          aria-label="Back to log"
           className="w-9 h-9 flex items-center justify-center rounded-xl bg-card border border-border text-zinc-400 hover:text-white transition-colors cursor-pointer"
         >←</button>
         <h2 className="font-condensed font-bold text-white uppercase tracking-wide leading-none" style={{ fontSize: '1.5rem' }}>
@@ -431,9 +432,12 @@ function Toggle({ label, hint, on, onToggle, last }) {
       <button
         type="button"
         onClick={onToggle}
+        role="switch"
+        aria-checked={on}
+        aria-label={label}
         className={`w-10 h-6 rounded-full relative transition-colors cursor-pointer border-0 ${on ? 'bg-blue-500/60' : 'bg-zinc-700'}`}
       >
-        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${on ? 'left-[18px]' : 'left-0.5'}`} />
+        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${on ? 'left-[18px]' : 'left-0.5'}`} aria-hidden="true" />
       </button>
     </div>
   )

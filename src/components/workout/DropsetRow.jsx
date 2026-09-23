@@ -48,14 +48,22 @@ export default function DropsetRow({ drop, onUpdate, onDelete, readOnly }) {
       {!readOnly && (
         <div className="ml-auto flex items-center gap-1">
           {!editing && (
-            <button onClick={() => setEditing(true)} className="text-zinc-600 hover:text-zinc-400 p-1 rounded transition-colors">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3">
+            <button
+              onClick={() => setEditing(true)}
+              aria-label={`Edit dropset ${drop.weight} lbs by ${drop.reps} reps`}
+              className="text-zinc-600 hover:text-zinc-400 p-1 rounded transition-colors"
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3" aria-hidden="true">
                 <path d="M11.7 2.3a1 1 0 011.4 1.4L5 12 2 13l1-3 8.7-7.7z" />
               </svg>
             </button>
           )}
-          <button onClick={() => onDelete(drop.id)} className="text-zinc-700 hover:text-red-400 p-1 rounded transition-colors">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3">
+          <button
+            onClick={() => onDelete(drop.id)}
+            aria-label={`Delete dropset ${drop.weight} lbs by ${drop.reps} reps`}
+            className="text-zinc-700 hover:text-red-400 p-1 rounded transition-colors"
+          >
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3 h-3" aria-hidden="true">
               <line x1="4" y1="4" x2="12" y2="12" /><line x1="12" y1="4" x2="4" y2="12" />
             </svg>
           </button>

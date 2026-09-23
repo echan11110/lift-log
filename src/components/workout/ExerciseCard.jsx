@@ -9,10 +9,14 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
   const [editingName, setEditingName] = useState(false)
   const [nameVal, setNameVal] = useState(exercise.name)
 
-  const { lastSets, daysAgo, allTimePR } = useExerciseHistory(
+  const { lastSets, daysAgo, bestSet, bestVolumeSet } = useExerciseHistory(
     readOnly ? null : exercise.name,
     currentDate
   )
+
+  // Only show the volume badge separately when it's a different set than the e1RM PR
+  // (a single set that's both heaviest-effort and highest-volume is common at low rep counts)
+  const showVolumeBadge = bestVolumeSet && (!bestSet || bestVolumeSet.set !== bestSet.set)
 
   // Top set from last session — used as placeholder pre-fill
   const topSet = lastSets.length
@@ -64,9 +68,10 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
         {!readOnly && (
           <button
             onClick={() => onDelete(exercise.id)}
+            aria-label={`Delete ${exercise.name}`}
             className="text-zinc-700 hover:text-red-400 p-1.5 rounded-lg transition-colors cursor-pointer"
           >
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4" aria-hidden="true">
               <polyline points="3 6 5 6 17 6" /><path d="M8 6V4h4v2" />
               <path d="M5 6l1 11h8l1-11" />
             </svg>
@@ -83,9 +88,14 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
               {lastSets.map(s => `${s.weight}×${s.reps}`).join(', ')}
             </span>
           </span>
-          {allTimePR > 0 && (
+          {bestSet && (
             <span className="inline-flex items-center gap-0.5 text-amber-400 text-xs font-semibold bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5">
-              ★ e1RM {Math.round(allTimePR)}
+              ★ Best {bestSet.set.weight}×{bestSet.set.reps} (e1RM {Math.round(bestSet.e1rm)})
+            </span>
+          )}
+          {showVolumeBadge && (
+            <span className="inline-flex items-center gap-0.5 text-sky-400 text-xs font-semibold bg-sky-400/10 border border-sky-400/20 rounded-full px-2 py-0.5">
+              Vol {bestVolumeSet.set.weight}×{bestVolumeSet.set.reps} ({bestVolumeSet.volume})
             </span>
           )}
         </div>

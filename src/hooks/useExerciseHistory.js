@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import { epley1RM } from '../lib/strength'
+import { bestE1RM } from '../lib/strength'
 
 // Returns the most recent prior session's sets for a given exercise name,
-// plus the all-time PR weight. Excludes any session on currentDate.
+// plus the all-time best set by e1RM and by single-set volume (weight × reps).
+// Excludes any session on currentDate.
 export function useExerciseHistory(name, currentDate) {
   const [lastSets, setLastSets] = useState([])
   const [lastDate, setLastDate] = useState(null)
   const [daysAgo, setDaysAgo] = useState(null)
-  const [allTimePR, setAllTimePR] = useState(0)
+  const [bestSet, setBestSet] = useState(null)
+  const [bestVolumeSet, setBestVolumeSet] = useState(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -39,7 +41,8 @@ export function useExerciseHistory(name, currentDate) {
           setLastSets([])
           setLastDate(null)
           setDaysAgo(null)
-          setAllTimePR(0)
+          setBestSet(null)
+          setBestVolumeSet(null)
           return
         }
 
@@ -50,14 +53,21 @@ export function useExerciseHistory(name, currentDate) {
         const recentEx = recent.exercises?.find(e => e.name === name)
         const recentSets = (recentEx?.sets ?? []).sort((a, b) => a.set_number - b.set_number)
 
-        // All-time PR = best e1RM across all historical sets for this exercise
-        let pr = 0
+        // All-time best set = highest e1RM and highest single-set volume
+        // across every historical set for this exercise
+        const allSets = []
         for (const s of sessions) {
           const ex = s.exercises?.find(e => e.name === name)
-          for (const set of ex?.sets ?? []) {
-            const e = epley1RM(set.weight, set.reps)
-            if (e > pr) pr = e
-          }
+          for (const set of ex?.sets ?? []) allSets.push(set)
+        }
+
+        const { e1rm, set: e1rmSet } = bestE1RM(allSets)
+
+        let volumeSet = null
+        let maxVolume = 0
+        for (const set of allSets) {
+          const v = set.weight * set.reps
+          if (v > maxVolume) { maxVolume = v; volumeSet = set }
         }
 
         const curr = new Date(currentDate + 'T12:00:00')
@@ -67,7 +77,8 @@ export function useExerciseHistory(name, currentDate) {
         setLastSets(recentSets)
         setLastDate(recentDate)
         setDaysAgo(ago)
-        setAllTimePR(pr)
+        setBestSet(e1rmSet ? { set: e1rmSet, e1rm } : null)
+        setBestVolumeSet(volumeSet ? { set: volumeSet, volume: maxVolume } : null)
       } catch (err) {
         console.error('useExerciseHistory:', err)
       } finally {
@@ -79,5 +90,5 @@ export function useExerciseHistory(name, currentDate) {
     return () => { cancelled = true }
   }, [name, currentDate])
 
-  return { lastSets, lastDate, daysAgo, allTimePR, loading }
+  return { lastSets, lastDate, daysAgo, bestSet, bestVolumeSet, loading }
 }

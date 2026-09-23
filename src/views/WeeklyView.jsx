@@ -96,6 +96,8 @@ export default function WeeklyView() {
         {days.map((dateStr, i) => {
           const session = sessions[dateStr]
           const exercises = session ? (exerciseMap[session.id] ?? []) : []
+          const strengthExercises = exercises.filter(e => e.exercise_type !== 'cardio')
+          const strengthCount = strengthExercises.length
           const volume = sessionVolume(exercises)
           const cardioSec = cardioDuration(exercises)
           const isExpanded = expanded === dateStr
@@ -120,7 +122,7 @@ export default function WeeklyView() {
                       <SplitBadge split={session.split_type} />
                     </div>
                     <p className="text-zinc-500 text-xs">
-                      {exercises.filter(e => e.exercise_type !== 'cardio').length} exercises · {volume.toLocaleString()} lbs
+                      {strengthCount} exercise{strengthCount === 1 ? '' : 's'} · {volume.toLocaleString()} lbs
                       {cardioSec > 0 && <span className="text-blue-400"> · {formatDuration(cardioSec)} cardio</span>}
                     </p>
                   </div>
@@ -135,7 +137,7 @@ export default function WeeklyView() {
               {isExpanded && (
                 <div className="px-4 pb-4 border-t border-border">
                   <div className="pt-4 space-y-1">
-                    {exercises.filter(e => e.exercise_type !== 'cardio').map(ex => (
+                    {strengthExercises.map(ex => (
                       <ExerciseCard key={ex.id} exercise={ex} readOnly />
                     ))}
                     {exercises.filter(e => e.exercise_type === 'cardio').map(ex => (
