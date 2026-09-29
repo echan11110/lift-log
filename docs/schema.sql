@@ -356,3 +356,88 @@ update cardio_entries
   set distance_unit = 'm'
   where distance_unit is null
     and distance_m is not null;
+
+-- ============================================================
+-- Migration v4 — ordering integrity
+-- Run this block in the Supabase SQL Editor. No rows are deleted.
+--
+-- Run the two steps IN ORDER. Step 1 must complete before step 2, because the
+-- unique indexes cannot be created while duplicate ordering values still exist.
+--
+-- WHY THIS EXISTS (audit 2026-09-28):
+--   Renumbering after a delete was issued as fire-and-forget UPDATEs from inside
+--   a React state updater — unawaited, with results discarded. Those writes were
+--   silently dropped, so deleting the middle of sets 1,2,3 left the UI showing
+--   1,2 but the database showing 1,3. The app then derived the next set number
+--   from the row COUNT, so the following insert collided and PERSISTED two rows
+--   numbered 3. Reproduced in the browser.
+--
+--   The client fix (awaited renumbering outside the updater, max(order)+1 for
+--   new rows) shipped separately. These constraints are the safety net: they
+--   make a future regression fail loudly instead of corrupting history silently.
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 1. Repair existing ordering values
+-- ------------------------------------------------------------
+-- Renumber contiguously from 1 within each parent, ordered by the existing
+-- value then creation time so the result is deterministic and preserves the
+-- order you actually logged things in. Nothing is deleted.
+-- Safe to re-run: rows already numbered correctly are skipped.
+
+with renum as (
+  select id, row_number() over (
+           partition by session_id order by exercise_order, created_at, id
+         ) as n
+  from exercises
+)
+update exercises e set exercise_order = renum.n
+from renum where renum.id = e.id and e.exercise_order <> renum.n;
+
+with renum as (
+  select id, row_number() over (
+           partition by exercise_id order by set_number, created_at, id
+         ) as n
+  from sets
+)
+update sets s set set_number = renum.n
+from renum where renum.id = s.id and s.set_number <> renum.n;
+
+with renum as (
+  select id, row_number() over (
+           partition by set_id order by drop_order, created_at, id
+         ) as n
+  from dropsets
+)
+update dropsets d set drop_order = renum.n
+from renum where renum.id = d.id and d.drop_order <> renum.n;
+
+-- ------------------------------------------------------------
+-- 2. Make duplicate ordering values impossible to persist
+-- ------------------------------------------------------------
+-- If any of these fail with 23505, step 1 did not complete — re-run it.
+create unique index if not exists uq_exercises_session_order on exercises (session_id, exercise_order);
+create unique index if not exists uq_sets_exercise_number    on sets (exercise_id, set_number);
+create unique index if not exists uq_dropsets_set_order      on dropsets (set_id, drop_order);
+
+-- ------------------------------------------------------------
+-- 3. Indexes that were missing
+-- ------------------------------------------------------------
+create index if not exists idx_sessions_split_day   on workout_sessions (split_day_id);
+create index if not exists idx_split_templates_user on split_templates (user_id);
+create index if not exists idx_exercises_type       on exercises (exercise_type);
+
+-- ------------------------------------------------------------
+-- NOTE — unrelated to this block
+-- ------------------------------------------------------------
+-- The v2 block above is NOT safe to re-run wholesale, despite its comment
+-- claiming idempotency: its 13 `create policy` statements have no matching
+-- `drop policy if exists`, so a re-run aborts with 42710. Only the
+-- `create or replace function` region (the name autocomplete RPCs) can be
+-- re-run freely, which is what repairs a database whose functions predate the
+-- exercise_type filter.
+--
+-- Optional hardening, not required by any current failure: both name RPCs take
+-- a caller-supplied p_user_id. That is safe today only because neither is
+-- SECURITY DEFINER, so RLS still filters the rows. Rewriting them to read
+-- auth.uid() directly would remove the reliance on the absence of one keyword.
