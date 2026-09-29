@@ -164,7 +164,7 @@ export default function CardioEntryForm({
   const [showResistance, setShowResistance] = useState(!!initialValues?.resistance_level)
 
   const hasDistance = unit !== 'min'
-  const totalSec = (parseInt(durationMin) || 0) * 60 + (parseInt(durationSec) || 0)
+  const totalSec = (parseInt(durationMin, 10) || 0) * 60 + (parseInt(durationSec, 10) || 0)
   const distanceStorage = hasDistance && distanceDisplay ? toStorageValue(distanceDisplay, unit) : null
   // Pace only makes sense for meters (rowing pace is per 500m)
   const avgPaceSec = unit === 'm' && distanceStorage && totalSec

@@ -1,18 +1,25 @@
 import { useState } from 'react'
 import SetRow from './SetRow'
-import { useExerciseHistory } from '../../hooks/useExerciseHistory'
+import { EMPTY_HISTORY } from '../../hooks/useExerciseHistory'
 
-export default function ExerciseCard({ exercise, currentDate, onDelete, onRename, onAddSet, onUpdateSet, onDeleteSet, onAddDropset, onUpdateDropset, onDeleteDropset, readOnly }) {
+const NUM_INPUT =
+  'bg-surface border rounded-lg px-2 py-2 text-white text-base text-center focus:outline-none transition-colors placeholder-zinc-600'
+
+// `history` is supplied by the parent from one batched query. This component used
+// to call useExerciseHistory itself, so six cards meant six identical history
+// queries plus six network getUser() calls whenever the day view rendered.
+export default function ExerciseCard({
+  exercise, history = EMPTY_HISTORY, onDelete, onRename, onAddSet,
+  onUpdateSet, onDeleteSet, onAddDropset, onUpdateDropset, onDeleteDropset, readOnly,
+}) {
   const [newWeight, setNewWeight] = useState('')
   const [newReps, setNewReps] = useState('')
   const [saving, setSaving] = useState(false)
+  const [invalid, setInvalid] = useState(false)
   const [editingName, setEditingName] = useState(false)
   const [nameVal, setNameVal] = useState(exercise.name)
 
-  const { lastSets, daysAgo, bestSet, bestVolumeSet } = useExerciseHistory(
-    readOnly ? null : exercise.name,
-    currentDate
-  )
+  const { lastSets, daysAgo, bestSet, bestVolumeSet } = readOnly ? EMPTY_HISTORY : history
 
   // Only show the volume badge separately when it's a different set than the e1RM PR
   // (a single set that's both heaviest-effort and highest-volume is common at low rep counts)
@@ -20,7 +27,7 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
 
   // Top set from last session — used as placeholder pre-fill
   const topSet = lastSets.length
-    ? lastSets.reduce((best, s) => s.weight >= best.weight ? s : best, lastSets[0])
+    ? lastSets.reduce((best, s) => (s.weight >= best.weight ? s : best), lastSets[0])
     : null
 
   function saveName() {
@@ -32,8 +39,14 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
 
   async function handleAddSet() {
     const w = parseFloat(newWeight)
-    const r = parseInt(newReps)
-    if (isNaN(w) || isNaN(r) || r <= 0) return
+    const r = parseInt(newReps, 10)
+    // Weight 0 is legitimate (bodyweight); reps must be at least 1.
+    if (Number.isNaN(w) || Number.isNaN(r) || r < 1) {
+      // This used to `return` silently, so "+ Set" looked like a dead button.
+      setInvalid(true)
+      return
+    }
+    setInvalid(false)
     setSaving(true)
     try {
       await onAddSet(exercise.id, w, r)
@@ -48,7 +61,7 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
 
   return (
     <div className="bg-card border border-border rounded-2xl p-4 mb-3 animate-fade-in">
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between gap-2 mb-1">
         {!readOnly && editingName ? (
           <input
             autoFocus
@@ -56,11 +69,12 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
             onChange={e => setNameVal(e.target.value)}
             onBlur={saveName}
             onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setNameVal(exercise.name); setEditingName(false) } }}
+            aria-label="Exercise name"
             className="font-condensed font-bold uppercase tracking-wide text-lg leading-none bg-transparent border-b border-accent text-white focus:outline-none flex-1 mr-2"
           />
         ) : (
           <h3
-            className={`font-condensed font-bold text-white uppercase tracking-wide text-lg leading-none${!readOnly ? ' cursor-pointer hover:text-accent transition-colors' : ''}`}
+            className={`font-condensed font-bold text-white uppercase tracking-wide text-lg leading-none min-w-0 break-words${!readOnly ? ' cursor-pointer hover:text-accent transition-colors' : ''}`}
             onClick={() => !readOnly && setEditingName(true)}
             title={!readOnly ? 'Tap to rename' : undefined}
           >{exercise.name}</h3>
@@ -69,9 +83,9 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
           <button
             onClick={() => onDelete(exercise.id)}
             aria-label={`Delete ${exercise.name}`}
-            className="text-zinc-700 hover:text-red-400 p-1.5 rounded-lg transition-colors cursor-pointer"
+            className="shrink-0 min-w-11 min-h-11 flex items-center justify-center text-zinc-700 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
           >
-            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-5 h-5" aria-hidden="true">
               <polyline points="3 6 5 6 17 6" /><path d="M8 6V4h4v2" />
               <path d="M5 6l1 11h8l1-11" />
             </svg>
@@ -119,31 +133,45 @@ export default function ExerciseCard({ exercise, currentDate, onDelete, onRename
       )}
 
       {!readOnly && (
-        <div className="flex items-center gap-2 pt-2.5 border-t border-border/60">
-          <input
-            type="number"
-            value={newWeight}
-            onChange={e => setNewWeight(e.target.value)}
-            placeholder={topSet ? String(topSet.weight) : 'lbs'}
-            className="w-16 bg-surface border border-border rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-accent transition-colors placeholder-zinc-600"
-          />
-          <span className="text-zinc-600 text-sm font-bold">×</span>
-          <input
-            type="number"
-            value={newReps}
-            onChange={e => setNewReps(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAddSet()}
-            placeholder={topSet ? String(topSet.reps) : 'reps'}
-            className="w-14 bg-surface border border-border rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-accent transition-colors placeholder-zinc-600"
-          />
-          <button
-            onClick={handleAddSet}
-            disabled={saving}
-            className="ml-auto text-xs font-semibold bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 px-3 py-2 rounded-lg transition-colors disabled:opacity-40 cursor-pointer"
-          >
-            + Set
-          </button>
-        </div>
+        <>
+          <div className="flex items-center gap-2 pt-2.5 border-t border-border/60">
+            <input
+              type="number"
+              inputMode="decimal"
+              step="any"
+              value={newWeight}
+              onChange={e => { setNewWeight(e.target.value); setInvalid(false) }}
+              placeholder={topSet ? String(topSet.weight) : 'lbs'}
+              aria-label={`Weight for new set of ${exercise.name}`}
+              aria-invalid={invalid || undefined}
+              className={`w-20 ${NUM_INPUT} ${invalid ? 'border-red-500' : 'border-border focus:border-accent'}`}
+            />
+            <span className="text-zinc-600 text-sm font-bold">×</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={newReps}
+              onChange={e => { setNewReps(e.target.value); setInvalid(false) }}
+              onKeyDown={e => e.key === 'Enter' && handleAddSet()}
+              placeholder={topSet ? String(topSet.reps) : 'reps'}
+              aria-label={`Reps for new set of ${exercise.name}`}
+              aria-invalid={invalid || undefined}
+              className={`w-16 ${NUM_INPUT} ${invalid ? 'border-red-500' : 'border-border focus:border-accent'}`}
+            />
+            <button
+              onClick={handleAddSet}
+              disabled={saving}
+              className="ml-auto text-xs font-semibold bg-accent/10 hover:bg-accent/20 text-accent border border-accent/20 px-4 min-h-11 rounded-lg transition-colors disabled:opacity-40 cursor-pointer"
+            >
+              + Set
+            </button>
+          </div>
+          {invalid && (
+            <p className="text-red-400 text-xs mt-2" role="alert">
+              Enter a weight and at least 1 rep to add a set.
+            </p>
+          )}
+        </>
       )}
     </div>
   )
