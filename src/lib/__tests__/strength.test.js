@@ -66,3 +66,33 @@ describe('bestE1RM', () => {
     expect(set.set_number).toBe(2)
   })
 })
+
+// Regression: audit 2026-09-28 (M-10). Epley is degenerate at weight 0, so
+// bodyweight exercises returned { e1rm: 0, set: null } and could never show a
+// best set or register a PR.
+describe('bestE1RM — bodyweight sets', () => {
+  it('picks a best set for a bodyweight exercise (pull-ups logged at weight 0)', () => {
+    const sets = [
+      { id: 's1', weight: 0, reps: 5 },
+      { id: 's2', weight: 0, reps: 12 },
+      { id: 's3', weight: 0, reps: 8 },
+    ]
+    expect(bestE1RM(sets).set?.id).toBe('s2')
+  })
+
+  it('a bodyweight set beats an empty history', () => {
+    expect(bestE1RM([{ id: 'bw', weight: 0, reps: 10 }]).set).not.toBeNull()
+  })
+
+  it('loaded sets still outrank bodyweight sets', () => {
+    const sets = [
+      { id: 'bw', weight: 0, reps: 20 },
+      { id: 'loaded', weight: 100, reps: 5 },
+    ]
+    expect(bestE1RM(sets).set.id).toBe('loaded')
+  })
+
+  it('still reports 0 for an empty array', () => {
+    expect(bestE1RM([])).toEqual({ e1rm: 0, set: null })
+  })
+})

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { weekRange, displayDate, todayStr, toDateStr, sessionVolume, cardioDuration, formatDuration, DAY_LABELS } from '../lib/dateUtils'
+import { getUserId } from '../lib/session'
+import { weekRange, todayStr, toDateStr, sessionVolume, cardioDuration, formatDuration, DAY_LABELS } from '../lib/dateUtils'
 import SplitBadge from '../components/ui/SplitBadge'
 import ExerciseCard from '../components/workout/ExerciseCard'
 import CardioCard from '../components/workout/CardioCard'
@@ -13,20 +14,17 @@ export default function WeeklyView() {
   const [expanded, setExpanded] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const days = weekRange(anchor)
+  const days = useMemo(() => weekRange(anchor), [anchor])
 
-  useEffect(() => {
-    loadWeek()
-  }, [anchor])
-
-  async function loadWeek() {
+  const loadWeek = useCallback(async () => {
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await getUserId()
+      if (!userId) return
       const { data: sessionData } = await supabase
         .from('workout_sessions')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .gte('date', days[0])
         .lte('date', days[6])
 
@@ -60,7 +58,9 @@ export default function WeeklyView() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [days])
+
+  useEffect(() => { void loadWeek() }, [loadWeek])
 
   function prevWeek() {
     const d = new Date(anchor + 'T12:00:00')
