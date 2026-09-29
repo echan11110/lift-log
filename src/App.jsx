@@ -4,6 +4,7 @@ import { SUPABASE_CONFIGURED } from './lib/supabase'
 import { useAuth } from './hooks/useAuth'
 import AuthPage from './components/auth/AuthPage'
 import Layout from './components/layout/Layout'
+import ErrorBoundary from './components/ErrorBoundary'
 import { PageSpinner } from './components/ui/Spinner'
 import LogView from './views/LogView'
 import SplitsView from './views/SplitsView'
@@ -43,28 +44,39 @@ export default function App() {
   }
 
   if (!user) {
-    return <AuthPage />
+    return (
+      <ErrorBoundary>
+        <AuthPage />
+      </ErrorBoundary>
+    )
   }
 
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/log" replace />} />
-        <Route path="/log" element={<LogView />} />
-        <Route path="/daily" element={<Navigate to="/log" replace />} />
-        <Route path="/week" element={<Navigate to="/log" replace />} />
-        <Route path="/month" element={<Navigate to="/log" replace />} />
-        <Route
-          path="/progress"
-          element={
-            <Suspense fallback={<PageSpinner />}>
-              <ProgressView />
-            </Suspense>
-          }
-        />
-        <Route path="/splits" element={<SplitsView />} />
-        <Route path="*" element={<Navigate to="/log" replace />} />
-      </Routes>
-    </Layout>
+    <ErrorBoundary>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Navigate to="/log" replace />} />
+          {/* Day / Week / Month are real routes rather than internal tab state, so
+              they can be bookmarked, deep-linked and reached with the back button.
+              All three previously redirected to /log, which silently dropped a
+              saved /week link onto the day view. */}
+          <Route path="/log" element={<LogView />} />
+          <Route path="/week" element={<LogView />} />
+          <Route path="/month" element={<LogView />} />
+          {/* /daily was served by a DailyView component that nothing rendered. */}
+          <Route path="/daily" element={<Navigate to="/log" replace />} />
+          <Route
+            path="/progress"
+            element={
+              <Suspense fallback={<PageSpinner />}>
+                <ProgressView />
+              </Suspense>
+            }
+          />
+          <Route path="/splits" element={<SplitsView />} />
+          <Route path="*" element={<Navigate to="/log" replace />} />
+        </Routes>
+      </Layout>
+    </ErrorBoundary>
   )
 }
