@@ -2,8 +2,24 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- Pinch-zoom is intentionally allowed. It was previously disabled with
+         maximum-scale=1/user-scalable=no to stop iOS auto-zooming when focusing
+         inputs smaller than 16px; those inputs are now 16px, so the zoom lock is
+         no longer needed and blocking it fails WCAG 1.4.4. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Lift Log</title>
+    <meta name="description" content="Track every rep. Own your progress." />
+    <meta name="theme-color" content="#0a0a0a" />
+
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+
+    <!-- Home-screen install on iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Lift Log" />
+
     <script>
       // Restore path encoded by 404.html redirect (GitHub Pages SPA fix)
       (function () {
@@ -18,10 +34,11 @@
         }
       })();
     </script>
-    <script type="module" crossorigin src="/lift-log/assets/index-siM4cFay.js"></script>
-    <link rel="stylesheet" crossorigin href="/lift-log/assets/index-juc5ZdRL.css">
+    <script type="module" crossorigin src="/lift-log/assets/index-N4Sj_6Dc.js"></script>
+    <link rel="stylesheet" crossorigin href="/lift-log/assets/index-Bm6bZkaw.css">
   </head>
   <body>
     <div id="root"></div>
+    <noscript>Lift Log needs JavaScript enabled.</noscript>
   </body>
 </html>
