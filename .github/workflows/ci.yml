@@ -1,0 +1,33 @@
+name: CI
+
+# Validates every pull request BEFORE merge. deploy.yml only runs on push to
+# main, so until this existed "the tests pass" was only known after merging.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      # Throwaway credentials on purpose. vite.config.js fails the build when
+      # VITE_ vars are missing, and pull requests from forks never receive
+      # secrets — so this proves the bundle compiles without needing the real
+      # project. Only the deploy build gets the actual values.
+      - name: Build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://ci.invalid
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-not-a-real-key

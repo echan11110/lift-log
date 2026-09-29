@@ -94,6 +94,47 @@ https://<your-username>.github.io/lift-log/
 
 ---
 
+## Safeguards
+
+Two automated checks exist because of a real three-month outage: a migration was
+applied by hand *before* the RPCs in `docs/schema.sql` were corrected, so the file
+and the production database disagreed while every build stayed green.
+
+### CI (`ci.yml`)
+
+Runs `npm test` and a build on **every pull request** and on pushes to `main`.
+The build uses throwaway `VITE_` values, so it also works for fork PRs, which
+never receive secrets.
+
+To make this binding rather than advisory, turn on branch protection for `main`
+(**Settings → Branches**): require a pull request, and require the `test` check.
+Without it you can still push straight to `main` and bypass CI entirely.
+
+### Schema contract (`schema-contract.yml`)
+
+`scripts/check-schema-contract.mjs` ignores `docs/schema.sql` completely and
+interrogates the **live** database with the public anon key and a dedicated
+fixture account. It asserts that every RPC the client calls exists, that the name
+RPCs filter on `exercise_type`, that required columns are present, and that
+duplicate ordering values are rejected.
+
+Run it locally with:
+
+```bash
+SUPABASE_URL=… SUPABASE_ANON_KEY=… SCHEMA_CHECK_PASSPHRASE=… node scripts/check-schema-contract.mjs
+```
+
+It runs after each deploy and daily on a schedule — the database can drift
+without a deploy, which is how the original bug survived.
+
+**One extra secret is required:** `SCHEMA_CHECK_PASSPHRASE`, any random string.
+It provisions its own fixture account on first run and writes only to a sentinel
+session dated `1970-01-02` under that account, so RLS keeps it away from real
+data. Note `src/lib/__tests__/schema.regression-1.test.js` is *not* a substitute:
+it reads the file as text and can never see the database.
+
+---
+
 ## Supabase Auth Setup
 
 Email + password auth is enabled by default in all new Supabase projects. No extra configuration needed unless you've disabled it under **Authentication → Providers**.

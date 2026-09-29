@@ -1,0 +1,35 @@
+name: Schema contract
+
+# Asserts the LIVE database still matches what the client expects.
+#
+# Runs after every deploy AND on a schedule, because the database can drift
+# without a deploy — that is exactly what happened in June 2026, when a hand-run
+# migration left production disagreeing with docs/schema.sql for three months
+# while every build stayed green.
+on:
+  workflow_run:
+    workflows: ["Deploy to GitHub Pages"]
+    types: [completed]
+  schedule:
+    - cron: '17 13 * * *'
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Check live schema contract
+        run: node scripts/check-schema-contract.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          SCHEMA_CHECK_PASSPHRASE: ${{ secrets.SCHEMA_CHECK_PASSPHRASE }}
