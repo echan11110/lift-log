@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../../lib/supabase'
+import { getUserId } from '../../lib/session'
 import { toDateStr, monthDays, todayStr } from '../../lib/dateUtils'
 
 const MONTH_NAMES = [
@@ -18,14 +19,14 @@ export default function CalendarPopover({ date, onSelect, onClose }) {
   const ref = useRef(null)
 
   const fetchMonth = useCallback(async (y, m) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const userId = await getUserId()
+    if (!userId) return
     const first = toDateStr(new Date(y, m, 1))
     const last  = toDateStr(new Date(y, m + 1, 0))
     const { data } = await supabase
       .from('workout_sessions')
       .select('date')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .gte('date', first)
       .lte('date', last)
     if (data) setLoggedDates(new Set(data.map(s => s.date)))

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { getUserId } from '../lib/session'
 
 export function useCardioDefs() {
   const [defs, setDefs] = useState([])
@@ -23,10 +24,11 @@ export function useCardioDefs() {
   }, [defs])
 
   const addDef = useCallback(async (name, unit) => {
-    const { data: { user } } = await supabase.auth.getUser()
+    const userId = await getUserId()
+    if (!userId) throw new Error('Your session expired — sign in again.')
     const { data, error } = await supabase
       .from('cardio_exercise_defs')
-      .insert({ user_id: user.id, name, unit })
+      .insert({ user_id: userId, name, unit })
       .select()
       .single()
     if (error) throw error

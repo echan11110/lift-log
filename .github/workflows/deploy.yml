@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+# Two pushes in quick succession used to race two deploys to gh-pages, and the
+# slower one could overwrite the newer build.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -21,6 +27,10 @@ jobs:
 
       - run: npm ci
 
+      - run: npm test
+
+      # vite.config.js fails the build when these are missing, so a run without
+      # secrets now goes red here instead of deploying an unusable app.
       - name: Build
         run: npm run build
         env:
@@ -28,7 +38,9 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Deploy
-        uses: peaceiris/actions-gh-pages@v3
+        # Pinned to the commit behind v3.9.3 (== current v3) rather than the
+        # floating v3 tag, which carries contents: write on this repo.
+        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist

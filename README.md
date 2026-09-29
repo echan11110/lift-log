@@ -4,11 +4,17 @@ A mobile-first workout tracking app built with React + Vite + Supabase.
 
 ## Features
 
-- Log workouts by split type (Push / Pull / Legs / Arms)
+- Log workouts against a split — Push / Pull / Legs / Arms by default, or your own
+  custom templates (Splits tab)
 - Track exercises, sets, reps, weight — with inline dropset support
-- Daily, weekly, and monthly views
-- Progress charts per exercise with PR detection
-- Auto-save — no manual save button
+- Cardio logging with a per-entry unit (m, km, mi, steps, floors, or anything you type)
+- Day, week and month views, plus a calendar date picker
+- Progress charts per exercise with e1RM-based PR detection
+- Auto-save — no manual save button. Pending edits are persisted locally and
+  replayed if you go offline, close the tab, or lose signal mid-set
+- Export everything to JSON or CSV (**Export** in the header) — there is no
+  password reset, so keep a backup
+- Installable to your home screen, with an offline app shell
 - Dark theme, mobile-first
 
 ---
@@ -41,7 +47,21 @@ Both values are in your Supabase project under **Settings → API**.
 npm run dev
 ```
 
-Open `http://localhost:5173/lift-log/`.
+Open `http://localhost:5183/`.
+
+In development the app is served from the root (`base` and `basename` are both
+`/`); the `/lift-log/` prefix applies only to production builds for GitHub Pages.
+The port is pinned to 5183 by `.claude/launch.json`; plain `vite` would use 5173.
+
+### Tests
+
+```bash
+npm test
+```
+
+62 unit tests — date handling, ordering, e1RM/PR maths, the autosave write queue,
+and the data export. The write-queue suite encodes the data-loss regressions
+found in the 2026-09-28 audit, so keep it green.
 
 ---
 

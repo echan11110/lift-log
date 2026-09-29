@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { getUserId } from '../lib/session'
 
 export function useSplitTemplates() {
   const [templates, setTemplates] = useState([])
@@ -8,12 +9,12 @@ export function useSplitTemplates() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const userId = await getUserId()
+      if (!userId) return
       const { data } = await supabase
         .from('split_templates')
         .select('*, split_days(*)')
-        .or(`user_id.is.null,user_id.eq.${user.id}`)
+        .or(`user_id.is.null,user_id.eq.${userId}`)
         .order('created_at')
       if (data) {
         setTemplates(data.map(t => ({
@@ -29,14 +30,14 @@ export function useSplitTemplates() {
   useEffect(() => { load() }, [load])
 
   const duplicateTemplate = useCallback(async (templateId) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const userId = await getUserId()
+    if (!userId) return
     const source = templates.find(t => t.id === templateId)
     if (!source) return
 
     const { data: newTpl } = await supabase
       .from('split_templates')
-      .insert({ user_id: user.id, name: `${source.name} (copy)` })
+      .insert({ user_id: userId, name: `${source.name} (copy)` })
       .select()
       .single()
     if (!newTpl) return
@@ -53,11 +54,11 @@ export function useSplitTemplates() {
   }, [templates, load])
 
   const createTemplate = useCallback(async (name) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const userId = await getUserId()
+    if (!userId) return
     const { data } = await supabase
       .from('split_templates')
-      .insert({ user_id: user.id, name })
+      .insert({ user_id: userId, name })
       .select()
       .single()
     await load()

@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { getUserId } from '../lib/session'
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -23,8 +24,9 @@ export default function ProgressView() {
   }, [])
 
   async function loadExercises() {
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase.rpc('distinct_exercise_names', { p_user_id: user.id })
+    const userId = await getUserId()
+    if (!userId) { setLoading(false); return }
+    const { data } = await supabase.rpc('distinct_exercise_names', { p_user_id: userId })
     if (data) setExercises(data)
     setLoading(false)
   }
@@ -32,13 +34,14 @@ export default function ProgressView() {
   async function loadProgress(name) {
     setChartLoading(true)
     setSelected(name)
-    const { data: { user } } = await supabase.auth.getUser()
+    const userId = await getUserId()
+    if (!userId) { setData([]); setChartLoading(false); return }
 
     const { data: exData } = await supabase
       .from('exercises')
       .select('id, workout_sessions!inner(date, user_id), sets(weight, reps, set_number, dropsets(weight, reps, drop_order))')
       .eq('name', name)
-      .eq('workout_sessions.user_id', user.id)
+      .eq('workout_sessions.user_id', userId)
       .order('workout_sessions(date)')
 
     if (!exData?.length) { setData([]); setChartLoading(false); return }
@@ -302,12 +305,12 @@ function CardioProg() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const userId = await getUserId()
+      if (!userId) return
       const { data } = await supabase
         .from('exercises')
         .select('name, cardio_entries(*), workout_sessions!inner(date, user_id)')
-        .eq('workout_sessions.user_id', user.id)
+        .eq('workout_sessions.user_id', userId)
         .eq('exercise_type', 'cardio')
         .order('workout_sessions(date)', { ascending: true })
       setCardioData(data ?? [])

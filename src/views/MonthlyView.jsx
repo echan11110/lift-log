@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
-import { monthDays, todayStr, toDateStr, sessionVolume } from '../lib/dateUtils'
+import { getUserId } from '../lib/session'
+import { monthDays, todayStr, toDateStr } from '../lib/dateUtils'
 import SplitBadge, { splitColor } from '../components/ui/SplitBadge'
 import ExerciseCard from '../components/workout/ExerciseCard'
 import { PageSpinner } from '../components/ui/Spinner'
@@ -18,23 +19,20 @@ export default function MonthlyView() {
   const [loading, setLoading] = useState(true)
   const [modalLoading, setModalLoading] = useState(false)
 
-  const days = monthDays(year, month)
+  const days = useMemo(() => monthDays(year, month), [year, month])
 
-  useEffect(() => {
-    loadMonth()
-  }, [year, month])
-
-  async function loadMonth() {
+  const loadMonth = useCallback(async () => {
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
+      const userId = await getUserId()
+      if (!userId) return
       const firstDay = `${year}-${String(month + 1).padStart(2, '0')}-01`
       const lastDay = toDateStr(new Date(year, month + 1, 0))
 
       const { data } = await supabase
         .from('workout_sessions')
         .select('id, date, split_type')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .gte('date', firstDay)
         .lte('date', lastDay)
 
@@ -44,7 +42,9 @@ export default function MonthlyView() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [year, month])
+
+  useEffect(() => { void loadMonth() }, [loadMonth])
 
   async function openModal(session) {
     setModal(session)
