@@ -1,4 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// toCSV and summarize are pure, but importing exportData pulls in lib/supabase,
+// which calls createClient() at module scope. On Node < 22 realtime-js throws
+// "Node.js 20 detected without native WebSocket support" — so this passed on a
+// local Node 25 and failed in CI on Node 20. Stub the client; these tests must
+// never construct one.
+vi.mock('../supabase', () => ({ supabase: {}, SUPABASE_CONFIGURED: false }))
+
 import { toCSV, summarize } from '../exportData'
 
 const sessions = [
