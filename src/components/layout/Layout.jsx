@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import BottomNav from './BottomNav'
+import ExportMenu from '../ui/ExportMenu'
 
 export default function Layout({ children }) {
   const [offline, setOffline] = useState(!navigator.onLine)
@@ -20,12 +21,15 @@ export default function Layout({ children }) {
         <span className="font-condensed font-bold text-white uppercase tracking-wide text-2xl leading-none">
           Lift<span className="text-accent">Log</span>
         </span>
-        <button
-          onClick={signOut}
-          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-3 py-1.5 rounded-lg border border-border cursor-pointer"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-2">
+          <ExportMenu />
+          <button
+            onClick={signOut}
+            className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-3 min-h-11 rounded-lg border border-border cursor-pointer"
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       {offline && (
